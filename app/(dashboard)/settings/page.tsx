@@ -1,5 +1,6 @@
 import { Topbar } from "@/components/topbar";
-import { Github, Trello, KeyRound, ExternalLink } from "lucide-react";
+import { Github, Trello, KeyRound, ExternalLink, Timer } from "lucide-react";
+import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export default function SettingsPage() {
   const trelloKeySet = !!process.env.TRELLO_API_KEY;
   const trelloTokenSet = !!process.env.TRELLO_TOKEN;
   const trelloLists = process.env.TRELLO_DONE_LIST_IDS;
+  const autoSyncMin = getAutoSyncIntervalMinutes();
 
   return (
     <>
@@ -91,6 +93,28 @@ export default function SettingsPage() {
               <code className="codepill">TRELLO_DONE_LIST_IDS</code>.
             </Step>
           </Steps>
+        </div>
+
+        <div className="card">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">
+              <Timer className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-fg">Sincronização automática</h2>
+              <p className="text-xs text-fg-muted">Roda em background enquanto o servidor está ativo</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Field
+              label="SYNC_INTERVAL_MIN"
+              value={`${autoSyncMin} minuto${autoSyncMin === 1 ? "" : "s"}`}
+              hint="Intervalo entre syncs automáticos"
+            />
+          </div>
+          <div className="mt-4 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
+            ✓ Auto-sync ativo. As fontes configuradas (com credenciais válidas) sincronizam sozinhas a cada {autoSyncMin}min.
+          </div>
         </div>
 
         <div className="card">
