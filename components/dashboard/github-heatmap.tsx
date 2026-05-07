@@ -14,6 +14,10 @@ const LEVEL_COLORS = [
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+const CELL_SIZE = 11;
+const CELL_GAP = 3;
+const COLUMN_WIDTH = CELL_SIZE + CELL_GAP;
+
 type HoverState = { day: GithubContribDay; x: number; y: number } | null;
 
 export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
@@ -89,26 +93,38 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
             <span>{WEEKDAYS[3]}</span>
             <span>{WEEKDAYS[5]}</span>
           </div>
-          <div className="flex-1">
+          <div
+            className="shrink-0"
+            style={{ width: `${weeks.length * COLUMN_WIDTH - CELL_GAP}px` }}
+          >
             <div className="relative h-4 text-[10px] text-fg-subtle">
               {monthLabels.map((m, i) => (
                 <span
                   key={i}
                   className="absolute"
-                  style={{ left: `${(m.weekIndex / weeks.length) * 100}%` }}
+                  style={{ left: `${m.weekIndex * COLUMN_WIDTH}px` }}
                 >
                   {m.label}
                 </span>
               ))}
             </div>
-            <div className="flex gap-[3px]" onMouseLeave={() => setHover(null)}>
+            <div
+              className="flex"
+              style={{ gap: `${CELL_GAP}px` }}
+              onMouseLeave={() => setHover(null)}
+            >
               {weeks.map((week, wi) => (
-                <div key={wi} className="flex flex-col gap-[3px]">
+                <div
+                  key={wi}
+                  className="flex flex-col"
+                  style={{ gap: `${CELL_GAP}px` }}
+                >
                   {week.map((day, di) => (
                     <div
                       key={di}
                       onMouseEnter={day ? (e) => handleEnter(e, day) : undefined}
-                      className={`h-[11px] w-[11px] rounded-[2px] ring-fg/30 transition-all ${
+                      style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px` }}
+                      className={`rounded-[2px] ring-fg/30 transition-all ${
                         day ? `${LEVEL_COLORS[day.level]} cursor-pointer hover:ring-1` : "bg-transparent"
                       }`}
                     />

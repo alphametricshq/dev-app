@@ -41,7 +41,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       borderRadius: {
