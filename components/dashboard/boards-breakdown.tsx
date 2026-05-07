@@ -3,11 +3,11 @@
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const COLORS = [
-  "hsl(265 85% 65%)",
   "hsl(40 90% 60%)",
-  "hsl(150 60% 50%)",
   "hsl(200 80% 60%)",
-  "hsl(320 70% 65%)",
+  "hsl(150 60% 50%)",
+  "hsl(180 65% 55%)",
+  "hsl(20 85% 62%)",
 ];
 
 export function BoardsBreakdown({ data }: { data: { board_name: string; count: number }[] }) {
