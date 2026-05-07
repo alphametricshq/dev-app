@@ -52,8 +52,15 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-border p-4 text-xs text-fg-subtle">
-        v0.1 · local
+      <div className="border-t border-border p-4">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+          </span>
+          <span className="text-[11px] text-fg-muted">Auto-sync ativo</span>
+        </div>
+        <div className="mt-1 text-[10px] text-fg-subtle">v0.1 · local</div>
       </div>
     </aside>
   );
