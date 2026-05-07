@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef } from "react";
 import type { GithubContribDay } from "@/lib/db/queries";
 
 const LEVEL_COLORS = [
@@ -14,7 +14,12 @@ const LEVEL_COLORS = [
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+type HoverState = { day: GithubContribDay; x: number; y: number } | null;
+
 export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hover, setHover] = useState<HoverState>(null);
+
   const { weeks, monthLabels, total } = useMemo(() => {
     const byDate = new Map(days.map((d) => [d.date, d]));
     const today = new Date();
@@ -56,6 +61,17 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
     return { weeks, monthLabels, total };
   }, [days]);
 
+  function handleEnter(e: React.MouseEvent<HTMLDivElement>, day: GithubContribDay) {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const target = e.currentTarget.getBoundingClientRect();
+    setHover({
+      day,
+      x: target.left - rect.left + target.width / 2,
+      y: target.top - rect.top,
+    });
+  }
+
   return (
     <div className="card">
       <div className="mb-4 flex items-baseline justify-between">
@@ -66,7 +82,7 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
         <Legend />
       </div>
 
-      <div className="overflow-x-auto">
+      <div ref={containerRef} className="relative overflow-x-auto">
         <div className="inline-flex min-w-full">
           <div className="flex flex-col justify-around pr-2 pt-5 text-[10px] text-fg-subtle">
             <span>{WEEKDAYS[1]}</span>
@@ -85,15 +101,15 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
                 </span>
               ))}
             </div>
-            <div className="flex gap-[3px]">
+            <div className="flex gap-[3px]" onMouseLeave={() => setHover(null)}>
               {weeks.map((week, wi) => (
                 <div key={wi} className="flex flex-col gap-[3px]">
                   {week.map((day, di) => (
                     <div
                       key={di}
-                      title={day ? `${day.date}: ${day.count} contribuições` : ""}
-                      className={`h-[11px] w-[11px] rounded-[2px] ${
-                        day ? LEVEL_COLORS[day.level] : "bg-transparent"
+                      onMouseEnter={day ? (e) => handleEnter(e, day) : undefined}
+                      className={`h-[11px] w-[11px] rounded-[2px] ring-fg/30 transition-all ${
+                        day ? `${LEVEL_COLORS[day.level]} cursor-pointer hover:ring-1` : "bg-transparent"
                       }`}
                     />
                   ))}
@@ -102,6 +118,23 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
             </div>
           </div>
         </div>
+
+        {hover && (
+          <div
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
+            style={{ left: hover.x, top: hover.y - 6 }}
+          >
+            <div className="whitespace-nowrap rounded-lg border border-border-strong bg-bg-card px-3 py-2 text-xs shadow-xl">
+              <div className="font-semibold text-fg">
+                {hover.day.count === 0
+                  ? "Nenhuma contribuição"
+                  : `${hover.day.count} contribuição${hover.day.count > 1 ? "ões" : ""}`}
+              </div>
+              <div className="mt-0.5 text-fg-muted">{formatLongDate(hover.day.date)}</div>
+              <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px h-2 w-2 rotate-45 border-b border-r border-border-strong bg-bg-card" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -117,4 +150,14 @@ function Legend() {
       <span>Mais</span>
     </div>
   );
+}
+
+function formatLongDate(iso: string) {
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
