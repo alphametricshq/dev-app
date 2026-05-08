@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Github, Trello, Settings, Sparkles } from "lucide-react";
+import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
+  { href: "/board", label: "Board", icon: KanbanSquare },
+  { href: "/conquistas", label: "Conquistas", icon: Trophy },
   { href: "/github", label: "GitHub", icon: Github },
   { href: "/trello", label: "Trello", icon: Trello },
   { href: "/settings", label: "Configurações", icon: Settings },
