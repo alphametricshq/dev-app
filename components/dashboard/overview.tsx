@@ -5,21 +5,25 @@ import {
   getRecentTrelloTasks,
   getLastSyncs,
 } from "@/lib/db/queries";
+import { getGamificationSummary } from "@/lib/gamification";
 import { StatCard } from "./stat-card";
 import { GithubHeatmap } from "./github-heatmap";
 import { TasksTimeseries } from "./tasks-timeseries";
 import { BoardsBreakdown } from "./boards-breakdown";
 import { RecentTasks } from "./recent-tasks";
 import { SyncStatus } from "./sync-status";
+import { LevelCard } from "@/components/gamification/level-card";
+import { GoalsList } from "@/components/gamification/goals-list";
 import { GitCommit, CheckSquare, Flame, TrendingUp } from "lucide-react";
 
 export async function OverviewDashboard() {
-  const [contribs, byDay, byBoard, recent, syncs] = await Promise.all([
+  const [contribs, byDay, byBoard, recent, syncs, gami] = await Promise.all([
     getGithubContributions(365),
     getTrelloCompletedByDay(90),
     getTrelloByBoard(90),
     getRecentTrelloTasks(8),
     getLastSyncs(),
+    getGamificationSummary(),
   ]);
 
   const ghTotal = contribs.reduce((s, d) => s + d.count, 0);
@@ -32,6 +36,18 @@ export async function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <LevelCard data={gami} compact />
+        </div>
+        <div className="card">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
+            Meta de hoje
+          </div>
+          <GoalsList goals={gami.goals.filter((g) => g.period === "daily")} />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Contribuições GitHub"
