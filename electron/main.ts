@@ -1,4 +1,5 @@
-import { app, BrowserWindow, shell, Menu } from "electron";
+import { app, BrowserWindow, shell, Menu, ipcMain } from "electron";
+import { autoUpdater } from "electron-updater";
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import http from "node:http";
@@ -11,7 +12,6 @@ let mainWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
-// Single instance lock: clicar de novo no atalho foca a janela existente
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -66,7 +66,6 @@ async function startNextServer(): Promise<string> {
   const port = await findFreePort(3717);
   const dataPath = app.getPath("userData");
 
-  // electron-builder copia .next/standalone para resources/standalone/ via extraResources
   const candidatePaths = [
     path.join(process.resourcesPath, "standalone", "server.js"),
     path.join(__dirname, "..", ".next", "standalone", "server.js"),
@@ -81,9 +80,7 @@ async function startNextServer(): Promise<string> {
     }
   }
   if (!foundScript) {
-    throw new Error(
-      `server.js nao encontrado. Caminhos tentados:\n${candidatePaths.join("\n")}`,
-    );
+    throw new Error(`server.js nao encontrado:\n${candidatePaths.join("\n")}`);
   }
 
   const cwd = path.dirname(foundScript);
@@ -110,6 +107,54 @@ async function startNextServer(): Promise<string> {
   return url;
 }
 
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[update] available:", info.version);
+    mainWindow?.webContents.send("update-available", {
+      version: info.version,
+      releaseNotes: typeof info.releaseNotes === "string" ? info.releaseNotes : null,
+    });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    console.log("[update] no update");
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[update] downloaded:", info.version);
+    mainWindow?.webContents.send("update-downloaded", {
+      version: info.version,
+      releaseNotes: typeof info.releaseNotes === "string" ? info.releaseNotes : null,
+    });
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("[update] error:", err);
+    mainWindow?.webContents.send("update-error", err.message ?? String(err));
+  });
+
+  ipcMain.on("install-update", () => {
+    autoUpdater.quitAndInstall();
+  });
+  ipcMain.on("check-for-updates", () => {
+    autoUpdater.checkForUpdates().catch((e) => console.error("[update] check failed:", e));
+  });
+  ipcMain.handle("get-app-version", () => app.getVersion());
+
+  // Check no startup e a cada hora
+  if (!isDev) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((e) => console.error("[update] check failed:", e));
+    }, 5_000);
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch((e) => console.error("[update] check failed:", e));
+    }, 60 * 60 * 1000);
+  }
+}
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -122,6 +167,7 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -145,6 +191,7 @@ app.whenReady().then(async () => {
       serverUrl = await startNextServer();
     }
     await createWindow();
+    setupAutoUpdater();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
     const msg = e instanceof Error ? e.message : String(e);
@@ -161,14 +208,10 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (serverProcess && !serverProcess.killed) {
-    serverProcess.kill();
-  }
+  if (serverProcess && !serverProcess.killed) serverProcess.kill();
   app.quit();
 });
 
 app.on("before-quit", () => {
-  if (serverProcess && !serverProcess.killed) {
-    serverProcess.kill();
-  }
+  if (serverProcess && !serverProcess.killed) serverProcess.kill();
 });

@@ -1,6 +1,6 @@
 {
   "name": "dashboard-pessoal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "main": "electron/main.js",
   "description": "Dashboard pessoal de produtividade com integrações GitHub e Trello",
@@ -22,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^0.469.0",
     "next": "^16.2.5",
     "react": "19.0.0",
@@ -51,8 +52,16 @@
     "directories": {
       "output": "dist-electron"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Ay0rus",
+        "repo": "dashboard-pessoal"
+      }
+    ],
     "files": [
       "electron/main.js",
+      "electron/preload.js",
       "dashboard.ico",
       "package.json"
     ],
