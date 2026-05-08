@@ -2,7 +2,15 @@ import { createClient, type Client } from "@libsql/client";
 import path from "node:path";
 import fs from "node:fs";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+function resolveDataDir(): string {
+  // Electron passa DASHBOARD_DATA_PATH como app.getPath('userData').
+  // Em dev, usa pasta data/ relativa ao projeto.
+  const fromEnv = process.env.DASHBOARD_DATA_PATH;
+  if (fromEnv) return fromEnv;
+  return path.join(process.cwd(), "data");
+}
+
+const DATA_DIR = resolveDataDir();
 const DB_PATH = path.join(DATA_DIR, "dashboard.db");
 
 let _client: Client | null = null;

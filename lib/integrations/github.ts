@@ -1,4 +1,5 @@
 import { upsertGithubContributions, type GithubContribDay } from "@/lib/db/queries";
+import { getCredential } from "@/lib/credentials/store";
 
 const GH_GRAPHQL = "https://api.github.com/graphql";
 
@@ -36,8 +37,8 @@ export async function fetchGithubContributions(opts?: {
   from?: Date;
   to?: Date;
 }): Promise<{ days: GithubContribDay[]; total: number }> {
-  const username = opts?.username ?? process.env.GITHUB_USERNAME;
-  const token = opts?.token ?? process.env.GITHUB_TOKEN;
+  const username = opts?.username ?? getCredential("GITHUB_USERNAME");
+  const token = opts?.token ?? getCredential("GITHUB_TOKEN");
   if (!username) throw new Error("GITHUB_USERNAME ausente");
   if (!token) throw new Error("GITHUB_TOKEN ausente");
 

@@ -1,6 +1,7 @@
 import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
+import { getCredential } from "@/lib/credentials/store";
 
 const GLOBAL_KEY = Symbol.for("dashboard.autoSync.started");
 type GlobalWithFlag = typeof globalThis & { [k: symbol]: boolean | undefined };
@@ -20,8 +21,8 @@ async function runSync(source: "github" | "trello", fn: () => Promise<{ itemsSyn
 }
 
 async function tick() {
-  const ghReady = !!process.env.GITHUB_TOKEN && !!process.env.GITHUB_USERNAME;
-  const trReady = !!process.env.TRELLO_API_KEY && !!process.env.TRELLO_TOKEN;
+  const ghReady = !!getCredential("GITHUB_TOKEN") && !!getCredential("GITHUB_USERNAME");
+  const trReady = !!getCredential("TRELLO_API_KEY") && !!getCredential("TRELLO_TOKEN");
   if (ghReady) await runSync("github", () => syncGithub().then((r) => ({ itemsSynced: r.itemsSynced })));
   if (trReady) await runSync("trello", () => syncTrello(90).then((r) => ({ itemsSynced: r.itemsSynced })));
 }
@@ -30,7 +31,7 @@ export function startAutoSync() {
   if (g[GLOBAL_KEY]) return;
   g[GLOBAL_KEY] = true;
 
-  const minutes = Math.max(1, Number(process.env.SYNC_INTERVAL_MIN) || DEFAULT_INTERVAL_MIN);
+  const minutes = Math.max(1, Number(getCredential("SYNC_INTERVAL_MIN")) || DEFAULT_INTERVAL_MIN);
   const intervalMs = minutes * 60 * 1000;
 
   // Primeiro tick após 10s (deixa o servidor estabilizar) e depois no intervalo configurado
@@ -45,5 +46,5 @@ export function startAutoSync() {
 }
 
 export function getAutoSyncIntervalMinutes(): number {
-  return Math.max(1, Number(process.env.SYNC_INTERVAL_MIN) || DEFAULT_INTERVAL_MIN);
+  return Math.max(1, Number(getCredential("SYNC_INTERVAL_MIN")) || DEFAULT_INTERVAL_MIN);
 }

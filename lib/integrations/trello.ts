@@ -1,4 +1,5 @@
 import { upsertTrelloCompletedTasks, type TrelloTaskInsert } from "@/lib/db/queries";
+import { getCredential } from "@/lib/credentials/store";
 
 const TRELLO_API = "https://api.trello.com/1";
 
@@ -22,8 +23,8 @@ type TrelloAction = {
 };
 
 function auth() {
-  const key = process.env.TRELLO_API_KEY;
-  const token = process.env.TRELLO_TOKEN;
+  const key = getCredential("TRELLO_API_KEY");
+  const token = getCredential("TRELLO_TOKEN");
   if (!key || !token) throw new Error("TRELLO_API_KEY ou TRELLO_TOKEN ausentes");
   return { key, token };
 }
@@ -57,7 +58,7 @@ function isDoneList(name: string): boolean {
 }
 
 async function resolveDoneListIds(): Promise<{ id: string; name: string; boardId: string; boardName: string }[]> {
-  const explicit = process.env.TRELLO_DONE_LIST_IDS?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+  const explicit = getCredential("TRELLO_DONE_LIST_IDS")?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
   const boards = await getMyBoards();
   const result: { id: string; name: string; boardId: string; boardName: string }[] = [];
 
