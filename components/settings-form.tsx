@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Github, Trello, Timer, ExternalLink, Save, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type CredView = { set: boolean; preview: string | null };
+type CredView = { set: boolean; preview: string | null; source?: "env" | "file" | "none" };
 type CredsView = Record<string, CredView>;
 
 type FormState = {
@@ -101,6 +101,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             value={form.GITHUB_USERNAME}
             onChange={(v) => setField("GITHUB_USERNAME", v)}
             currentSet={view.GITHUB_USERNAME?.set}
+            source={view.GITHUB_USERNAME?.source}
           />
           <Field
             label="Personal Access Token"
@@ -109,6 +110,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             value={form.GITHUB_TOKEN}
             onChange={(v) => setField("GITHUB_TOKEN", v)}
             currentSet={view.GITHUB_TOKEN?.set}
+            source={view.GITHUB_TOKEN?.source}
             secret
             showSecrets={showSecrets}
           />
@@ -143,6 +145,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             value={form.TRELLO_API_KEY}
             onChange={(v) => setField("TRELLO_API_KEY", v)}
             currentSet={view.TRELLO_API_KEY?.set}
+            source={view.TRELLO_API_KEY?.source}
             secret
             showSecrets={showSecrets}
           />
@@ -153,6 +156,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             value={form.TRELLO_TOKEN}
             onChange={(v) => setField("TRELLO_TOKEN", v)}
             currentSet={view.TRELLO_TOKEN?.set}
+            source={view.TRELLO_TOKEN?.source}
             secret
             showSecrets={showSecrets}
           />
@@ -163,6 +167,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             value={form.TRELLO_DONE_LIST_IDS}
             onChange={(v) => setField("TRELLO_DONE_LIST_IDS", v)}
             currentSet={view.TRELLO_DONE_LIST_IDS?.set}
+            source={view.TRELLO_DONE_LIST_IDS?.source}
             hint="IDs de listas que representam Done, separadas por vírgula"
           />
         </div>
@@ -246,6 +251,7 @@ function Field({
   value,
   onChange,
   currentSet,
+  source,
   hint,
   secret,
   showSecrets,
@@ -256,6 +262,7 @@ function Field({
   value: string;
   onChange: (v: string) => void;
   currentSet?: boolean;
+  source?: "env" | "file" | "none";
   hint?: string;
   secret?: boolean;
   showSecrets?: boolean;
@@ -264,15 +271,25 @@ function Field({
     <div>
       <label className="label flex items-center justify-between">
         <span>{label}</span>
-        {currentSet ? (
-          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium normal-case text-success">
-            configurado
-          </span>
-        ) : (
-          <span className="rounded-full bg-fg-subtle/15 px-2 py-0.5 text-[10px] font-medium normal-case text-fg-muted">
-            não configurado
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {source === "env" && (
+            <span
+              className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium normal-case text-warning"
+              title="Vindo do .env.local — sobrescreve qualquer valor salvo aqui"
+            >
+              .env.local
+            </span>
+          )}
+          {currentSet ? (
+            <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium normal-case text-success">
+              configurado
+            </span>
+          ) : (
+            <span className="rounded-full bg-fg-subtle/15 px-2 py-0.5 text-[10px] font-medium normal-case text-fg-muted">
+              não configurado
+            </span>
+          )}
+        </div>
       </label>
       <input
         name={name}
