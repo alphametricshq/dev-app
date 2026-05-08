@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { GithubContribDay } from "@/lib/db/queries";
 
 const LEVEL_COLORS = [
@@ -21,8 +22,10 @@ const COLUMN_WIDTH = CELL_SIZE + CELL_GAP;
 type HoverState = { day: GithubContribDay; x: number; y: number } | null;
 
 export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverState>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const { weeks, monthLabels, total } = useMemo(() => {
     const byDate = new Map(days.map((d) => [d.date, d]));
@@ -66,13 +69,11 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
   }, [days]);
 
   function handleEnter(e: React.MouseEvent<HTMLDivElement>, day: GithubContribDay) {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
     const target = e.currentTarget.getBoundingClientRect();
     setHover({
       day,
-      x: target.left - rect.left + target.width / 2,
-      y: target.top - rect.top,
+      x: target.left + target.width / 2,
+      y: target.top,
     });
   }
 
@@ -86,7 +87,7 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
         <Legend />
       </div>
 
-      <div ref={containerRef} className="relative overflow-x-auto">
+      <div className="overflow-x-auto">
         <div className="inline-flex min-w-full">
           <div className="flex flex-col justify-around pr-2 pt-5 text-[10px] text-fg-subtle">
             <span>{WEEKDAYS[1]}</span>
@@ -135,23 +136,25 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
           </div>
         </div>
 
-        {hover && (
-          <div
-            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
-            style={{ left: hover.x, top: hover.y - 6 }}
-          >
-            <div className="whitespace-nowrap rounded-lg border border-border-strong bg-bg-card px-3 py-2 text-xs shadow-xl">
-              <div className="font-semibold text-fg">
-                {hover.day.count === 0
-                  ? "Nenhuma contribuição"
-                  : `${hover.day.count} contribuição${hover.day.count > 1 ? "ões" : ""}`}
-              </div>
-              <div className="mt-0.5 text-fg-muted">{formatLongDate(hover.day.date)}</div>
-              <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px h-2 w-2 rotate-45 border-b border-r border-border-strong bg-bg-card" />
-            </div>
-          </div>
-        )}
       </div>
+
+      {mounted && hover && createPortal(
+        <div
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full"
+          style={{ left: hover.x, top: hover.y - 8 }}
+        >
+          <div className="whitespace-nowrap rounded-lg border border-border-strong bg-bg-card px-3 py-2 text-xs shadow-2xl">
+            <div className="font-semibold text-fg">
+              {hover.day.count === 0
+                ? "Nenhuma contribuição"
+                : `${hover.day.count} contribuição${hover.day.count > 1 ? "ões" : ""}`}
+            </div>
+            <div className="mt-0.5 text-fg-muted">{formatLongDate(hover.day.date)}</div>
+            <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px h-2 w-2 rotate-45 border-b border-r border-border-strong bg-bg-card" />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
