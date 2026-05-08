@@ -2,7 +2,7 @@ import type { GithubContribDay } from "@/lib/db/queries";
 
 // Metas default. No futuro pode virar configuravel via /settings.
 export const GOALS = {
-  daily: { github: 3, trello: 2 },
+  daily: { github: 40, trello: 1 },
   weekly: { github: 15, trello: 7 },
   monthly: { github: 60, trello: 25 },
 };
