@@ -3,7 +3,11 @@ node_modules
 out
 build
 dist
+dist-electron
 *.tsbuildinfo
+
+# Compiled Electron main process
+electron/main.js
 
 .env
 .env.local
