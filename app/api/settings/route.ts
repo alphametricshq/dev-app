@@ -9,20 +9,38 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Mascara o valor para o front: "ghp_xxx" -> "ghp_•••3xyz"
-function maskedView(creds: Credentials) {
-  const view: Record<string, { set: boolean; preview: string | null }> = {};
+type CredView = {
+  set: boolean;
+  preview: string | null;
+  source: "env" | "file" | "none";
+};
+
+function maskedView() {
+  const stored = loadCredentials();
+  const view = {} as Record<keyof Credentials, CredView>;
+
   for (const key of CREDENTIAL_KEYS) {
-    const v = creds[key];
+    const fromEnv = process.env[key];
+    const fromFile = stored[key];
+    const v = fromEnv ?? fromFile;
+    const source: "env" | "file" | "none" = fromEnv ? "env" : fromFile ? "file" : "none";
+
     if (!v) {
-      view[key] = { set: false, preview: null };
-    } else if (key === "GITHUB_USERNAME" || key === "TRELLO_DONE_LIST_IDS" || key === "SYNC_INTERVAL_MIN") {
-      view[key] = { set: true, preview: String(v) };
+      view[key] = { set: false, preview: null, source };
+      continue;
+    }
+    if (
+      key === "GITHUB_USERNAME" ||
+      key === "TRELLO_DONE_LIST_IDS" ||
+      key === "SYNC_INTERVAL_MIN"
+    ) {
+      view[key] = { set: true, preview: String(v), source };
     } else {
       const s = String(v);
       view[key] = {
         set: true,
         preview: s.length > 8 ? `${s.slice(0, 4)}••••${s.slice(-3)}` : "••••",
+        source,
       };
     }
   }
@@ -30,8 +48,7 @@ function maskedView(creds: Credentials) {
 }
 
 export async function GET() {
-  const creds = loadCredentials();
-  return NextResponse.json({ ok: true, credentials: maskedView(creds) });
+  return NextResponse.json({ ok: true, credentials: maskedView() });
 }
 
 export async function POST(req: Request) {
@@ -41,7 +58,7 @@ export async function POST(req: Request) {
     const next: Credentials = { ...current };
     for (const key of CREDENTIAL_KEYS) {
       const v = body[key];
-      if (v === undefined) continue; // nao mexer
+      if (v === undefined) continue;
       if (typeof v !== "string") continue;
       if (v.trim() === "") {
         delete next[key];
@@ -50,7 +67,7 @@ export async function POST(req: Request) {
       }
     }
     saveCredentials(next);
-    return NextResponse.json({ ok: true, credentials: maskedView(next) });
+    return NextResponse.json({ ok: true, credentials: maskedView() });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "Erro desconhecido" },
