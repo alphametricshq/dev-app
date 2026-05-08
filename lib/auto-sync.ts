@@ -7,7 +7,7 @@ const GLOBAL_KEY = Symbol.for("dashboard.autoSync.started");
 type GlobalWithFlag = typeof globalThis & { [k: symbol]: boolean | undefined };
 const g = globalThis as GlobalWithFlag;
 
-const DEFAULT_INTERVAL_MIN = 30;
+const DEFAULT_INTERVAL_MIN = 10;
 
 async function runSync(source: "github" | "trello", fn: () => Promise<{ itemsSynced: number }>) {
   const id = await logSyncStart(source);
