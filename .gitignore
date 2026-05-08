@@ -6,8 +6,8 @@ dist
 dist-electron
 *.tsbuildinfo
 
-# Compiled Electron main process
-electron/main.js
+# Compiled Electron sources
+electron/*.js
 
 .env
 .env.local
