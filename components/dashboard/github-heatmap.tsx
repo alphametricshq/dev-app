@@ -147,7 +147,7 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
             <div className="font-semibold text-fg">
               {hover.day.count === 0
                 ? "Nenhuma contribuição"
-                : `${hover.day.count} contribuição${hover.day.count > 1 ? "ões" : ""}`}
+                : `${hover.day.count} ${hover.day.count === 1 ? "contribuição" : "contribuições"}`}
             </div>
             <div className="mt-0.5 text-fg-muted">{formatLongDate(hover.day.date)}</div>
             <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px h-2 w-2 rotate-45 border-b border-r border-border-strong bg-bg-card" />

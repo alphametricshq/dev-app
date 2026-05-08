@@ -1,6 +1,6 @@
 {
   "name": "dashboard-pessoal",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "main": "electron/main.js",
   "description": "Dashboard pessoal de produtividade com integrações GitHub e Trello",
