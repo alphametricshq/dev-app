@@ -86,6 +86,8 @@ export async function OverviewDashboard() {
         />
       </div>
 
+      <GithubHeatmap days={contribs} />
+
       {/* ===== Análise de desempenho (resumo) ===== */}
       <section className="space-y-4">
         <header className="flex items-center justify-between">
@@ -116,8 +118,6 @@ export async function OverviewDashboard() {
 
         {combinedInsights.length > 0 && <InsightsBox insights={combinedInsights} />}
       </section>
-
-      <GithubHeatmap days={contribs} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
