@@ -9,9 +9,16 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
-export function TasksTimeseries({ data }: { data: { date: string; count: number }[] }) {
+export function TasksTimeseries({
+  data,
+  dailyTarget,
+}: {
+  data: { date: string; count: number }[];
+  dailyTarget?: number;
+}) {
   const filled = useMemo(() => fillMissingDays(data, 90), [data]);
   const total = useMemo(() => filled.reduce((s, d) => s + d.count, 0), [filled]);
 
@@ -22,6 +29,12 @@ export function TasksTimeseries({ data }: { data: { date: string; count: number 
           <h3 className="text-sm font-semibold text-fg">Tarefas concluídas</h3>
           <p className="text-xs text-fg-muted">{total} nos últimos 90 dias</p>
         </div>
+        {dailyTarget != null && dailyTarget > 0 && (
+          <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
+            <span className="h-px w-3 border-t border-dashed border-accent" />
+            Meta: {dailyTarget}/dia
+          </div>
+        )}
       </div>
       <div className="h-56 w-full">
         <ResponsiveContainer>
@@ -70,6 +83,14 @@ export function TasksTimeseries({ data }: { data: { date: string; count: number 
               strokeWidth={2}
               fill="url(#taskGrad)"
             />
+            {dailyTarget != null && dailyTarget > 0 && (
+              <ReferenceLine
+                y={dailyTarget}
+                stroke="hsl(265 85% 65%)"
+                strokeDasharray="4 4"
+                strokeOpacity={0.6}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>

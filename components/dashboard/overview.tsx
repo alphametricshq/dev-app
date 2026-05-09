@@ -116,7 +116,7 @@ export async function OverviewDashboard() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <TasksTimeseries data={byDay} />
+          <TasksTimeseries data={byDay} dailyTarget={dailyGoal.trello.target} />
         </div>
         <BoardsBreakdown data={byBoard} />
       </div>
