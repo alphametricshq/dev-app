@@ -3,39 +3,75 @@ import { TasksTimeseries } from "@/components/dashboard/tasks-timeseries";
 import { BoardsBreakdown } from "@/components/dashboard/boards-breakdown";
 import { RecentTasks } from "@/components/dashboard/recent-tasks";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { ComparisonCard } from "@/components/analytics/comparison-card";
+import { WeekdayBars } from "@/components/analytics/weekday-bars";
+import { HourBars } from "@/components/analytics/hour-bars";
+import { InsightsBox } from "@/components/analytics/insights-box";
 import {
   getTrelloCompletedByDay,
   getTrelloByBoard,
   getRecentTrelloTasks,
 } from "@/lib/db/queries";
-import { CheckSquare, Calendar, BarChart3, Flame } from "lucide-react";
+import { getTrelloAnalytics } from "@/lib/analytics/trello";
+import { CheckSquare, Calendar, BarChart3, Flame, LineChart } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrelloPage() {
-  const [byDay, byBoard, recent] = await Promise.all([
+  const [byDay, byBoard, recent, analytics] = await Promise.all([
     getTrelloCompletedByDay(90),
     getTrelloByBoard(90),
     getRecentTrelloTasks(20),
+    getTrelloAnalytics(),
   ]);
 
-  const total = byDay.reduce((s, d) => s + d.count, 0);
-  const last7 = byDay.slice(-7).reduce((s, d) => s + d.count, 0);
+  const total = analytics.total90;
+  const last7 = analytics.totalLast7;
   const activeDays = byDay.filter((d) => d.count > 0).length;
   const avg = total > 0 ? (total / 90).toFixed(1) : "0";
 
   return (
     <>
-      <Topbar title="Trello" subtitle="Tarefas concluídas — 90 dias" />
+      <Topbar title="Trello" subtitle="Tarefas concluídas + análise de desempenho" />
       <div className="space-y-6 px-8 py-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Total (90 dias)" value={total} icon={CheckSquare} accent="trello" />
           <StatCard label="Últimos 7 dias" value={last7} icon={Flame} accent="trello" />
-          <StatCard label="Média / dia" value={avg} icon={BarChart3} accent="trello" />
+          <StatCard label="Velocidade" value={`${analytics.velocityPerWeek.toFixed(1)}/sem`} icon={BarChart3} accent="trello" />
           <StatCard label="Dias ativos" value={`${activeDays}/90`} icon={Calendar} accent="trello" />
         </div>
 
         <TasksTimeseries data={byDay} />
+
+        {/* ===== Análise de desempenho ===== */}
+        <section className="space-y-4">
+          <header className="flex items-center gap-2">
+            <LineChart className="h-4 w-4 text-accent" />
+            <h2 className="text-base font-semibold text-fg">Análise de desempenho</h2>
+          </header>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ComparisonCard label="Esta semana" comparison={analytics.weekly} unit="tarefas" accent="trello" />
+            <ComparisonCard label="Este mês" comparison={analytics.monthly} unit="tarefas" accent="trello" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <WeekdayBars
+              data={analytics.weekdayDistribution}
+              title="Por dia da semana"
+              subtitle="Tarefas concluídas (90 dias)"
+              valueKey="count"
+              color="hsl(40 90% 60%)"
+              bestWeekday={analytics.bestWeekday}
+            />
+            <HourBars
+              data={analytics.hourDistribution}
+              peakHour={analytics.peakHour}
+            />
+          </div>
+
+          <InsightsBox insights={analytics.insights} />
+        </section>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <BoardsBreakdown data={byBoard} />
