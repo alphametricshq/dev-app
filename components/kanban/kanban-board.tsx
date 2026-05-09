@@ -26,6 +26,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const [activeCard, setActiveCard] = useState<TrelloCardItem | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+  const [pomodoroCounts, setPomodoroCounts] = useState<Record<string, { count: number; minutes: number }>>({});
   const [addingList, setAddingList] = useState(false);
   const [listDraft, setListDraft] = useState("");
   const listInputRef = useRef<HTMLInputElement>(null);
@@ -39,13 +40,17 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     Promise.all([
       fetch(`/api/trello/boards/${boardId}`).then((r) => r.json()),
       fetch(`/api/trello/cards/pinned`).then((r) => r.json()),
+      fetch(`/api/pomodoro/by-card`).then((r) => r.json()),
     ])
-      .then(([boardData, pinnedData]) => {
+      .then(([boardData, pinnedData, pomodoroData]) => {
         if (cancel) return;
         if (!boardData?.ok) throw new Error(boardData?.error ?? "Falha ao carregar board");
         setBoard(boardData.board);
         if (pinnedData?.ok && Array.isArray(pinnedData.cards)) {
           setPinnedIds(new Set(pinnedData.cards.map((c: { card_id: string }) => c.card_id)));
+        }
+        if (pomodoroData?.ok && pomodoroData.counts) {
+          setPomodoroCounts(pomodoroData.counts);
         }
       })
       .catch((e) => !cancel && toast.error("Erro ao carregar board", e instanceof Error ? e.message : String(e)))
@@ -378,6 +383,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
                 list={list}
                 cards={cardsOf(list.id)}
                 pinnedIds={pinnedIds}
+                pomodoroCounts={pomodoroCounts}
                 onAddCard={addCard}
                 onOpenCard={(c) => setOpenCardId(c.id)}
                 onDeleteCard={deleteCard}

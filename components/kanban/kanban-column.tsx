@@ -12,6 +12,7 @@ export function KanbanColumn({
   list,
   cards,
   pinnedIds,
+  pomodoroCounts,
   onAddCard,
   onOpenCard,
   onDeleteCard,
@@ -22,6 +23,7 @@ export function KanbanColumn({
   list: TrelloListItem;
   cards: TrelloCardItem[];
   pinnedIds: Set<string>;
+  pomodoroCounts: Record<string, { count: number; minutes: number }>;
   onAddCard: (listId: string, name: string) => void;
   onOpenCard: (card: TrelloCardItem) => void;
   onDeleteCard: (cardId: string) => void;
@@ -155,6 +157,7 @@ export function KanbanColumn({
               key={card.id}
               card={card}
               pinned={pinnedIds.has(card.id)}
+              pomodoroCount={pomodoroCounts[card.id]?.count ?? 0}
               onOpen={onOpenCard}
               onDelete={onDeleteCard}
               onTogglePin={onTogglePinCard}

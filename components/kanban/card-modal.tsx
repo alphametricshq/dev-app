@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Trash2, ExternalLink, AlignLeft, Star } from "lucide-react";
+import { X, Trash2, ExternalLink, AlignLeft, Star, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
+import type { PomodoroSession } from "@/lib/db/pomodoro-queries";
 
 export function CardModal({
   card,
@@ -24,7 +25,22 @@ export function CardModal({
 }) {
   const [name, setName] = useState(card.name);
   const [desc, setDesc] = useState(card.desc);
+  const [pomodoros, setPomodoros] = useState<PomodoroSession[]>([]);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    fetch(`/api/pomodoro/card/${card.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancel) return;
+        if (data?.ok && Array.isArray(data.sessions)) setPomodoros(data.sessions);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [card.id]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -98,6 +114,45 @@ export function CardModal({
               para salvar e fechar.
             </div>
           </div>
+
+          {pomodoros.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
+                <Brain className="h-3.5 w-3.5" />
+                Pomodoros vinculados ({pomodoros.length})
+              </div>
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                {pomodoros.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-bg-subtle px-3 py-1.5 text-xs"
+                  >
+                    <span className="text-fg">
+                      {s.type === "focus" ? "Foco" : "Pausa"} ·{" "}
+                      <span className="font-mono text-fg-muted">{s.duration_min}min</span>
+                    </span>
+                    <span className="font-mono text-[10px] text-fg-subtle">
+                      {new Date(s.finished_at + "Z").toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-[11px] text-fg-subtle">
+                Total focado:{" "}
+                <span className="font-mono text-fg">
+                  {pomodoros
+                    .filter((s) => s.type === "focus")
+                    .reduce((sum, s) => sum + s.duration_min, 0)}
+                  min
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border bg-bg-subtle/40 px-6 py-3">

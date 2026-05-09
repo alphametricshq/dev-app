@@ -1,6 +1,7 @@
 "use client";
 
-import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee } from "lucide-react";
+import { useState } from "react";
+import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   start,
@@ -9,11 +10,13 @@ import {
   reset,
   complete,
   configureSession,
+  setSessionCard,
   PomodoroLabels,
   PomodoroDefaults,
   type SessionType,
 } from "@/lib/pomodoro-store";
 import { usePomodoroState, useRemainingSeconds, useProgressPct } from "@/lib/use-pomodoro";
+import { CardSelector } from "./card-selector";
 
 const TYPE_COLORS: Record<SessionType, { bg: string; text: string }> = {
   focus: { bg: "bg-accent", text: "text-accent" },
@@ -25,6 +28,7 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
   const state = usePomodoroState();
   const remaining = useRemainingSeconds();
   const progress = useProgressPct();
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   if (!state) return null;
 
@@ -164,6 +168,39 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
           </button>
         ))}
       </div>
+
+      {/* Vinculo com card */}
+      {state.cardId && state.cardName ? (
+        <div className="flex w-full max-w-md items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs">
+          <KanbanSquare className="h-3.5 w-3.5 shrink-0 text-warning" />
+          <span className="flex-1 truncate text-fg">{state.cardName}</span>
+          <button
+            onClick={() => setSessionCard(null, null)}
+            className="rounded p-1 text-fg-subtle hover:text-danger"
+            aria-label="Desvincular"
+          >
+            <Link2Off className="h-3 w-3" />
+          </button>
+        </div>
+      ) : state.type === "focus" ? (
+        <button
+          onClick={() => setSelectorOpen(true)}
+          className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1 text-xs text-fg-muted transition-colors hover:border-accent hover:text-accent"
+        >
+          <KanbanSquare className="h-3 w-3" />
+          Vincular card do board
+        </button>
+      ) : null}
+
+      {selectorOpen && (
+        <CardSelector
+          onClose={() => setSelectorOpen(false)}
+          onSelect={(card) => {
+            setSessionCard(card.id, card.name);
+            setSelectorOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

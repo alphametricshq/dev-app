@@ -12,6 +12,7 @@ export function KanbanCard({
   onDelete,
   onTogglePin,
   pinned = false,
+  pomodoroCount = 0,
   isDragging: isDraggingProp,
 }: {
   card: TrelloCardItem;
@@ -19,6 +20,7 @@ export function KanbanCard({
   onDelete?: (cardId: string) => void;
   onTogglePin?: (card: TrelloCardItem, currentlyPinned: boolean) => void;
   pinned?: boolean;
+  pomodoroCount?: number;
   isDragging?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -48,10 +50,19 @@ export function KanbanCard({
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="whitespace-pre-wrap break-words text-fg">{card.name}</div>
-          {hasDesc && (
-            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-fg-subtle">
-              <AlignLeft className="h-3 w-3" />
-              <span>tem descrição</span>
+          {(hasDesc || pomodoroCount > 0) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-fg-subtle">
+              {hasDesc && (
+                <span className="flex items-center gap-1">
+                  <AlignLeft className="h-3 w-3" />
+                  desc
+                </span>
+              )}
+              {pomodoroCount > 0 && (
+                <span className="flex items-center gap-1 rounded-full bg-warning/10 px-1.5 py-0.5 text-warning">
+                  🍅 {pomodoroCount}
+                </span>
+              )}
             </div>
           )}
         </div>
