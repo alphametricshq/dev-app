@@ -17,12 +17,12 @@ import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { CardModal } from "./card-modal";
+import { toast } from "@/lib/toast";
 import type { TrelloBoardFull, TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const [board, setBoard] = useState<TrelloBoardFull | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<TrelloCardItem | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
@@ -36,7 +36,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    setError(null);
     Promise.all([
       fetch(`/api/trello/boards/${boardId}`).then((r) => r.json()),
       fetch(`/api/trello/cards/pinned`).then((r) => r.json()),
@@ -49,7 +48,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           setPinnedIds(new Set(pinnedData.cards.map((c: { card_id: string }) => c.card_id)));
         }
       })
-      .catch((e) => !cancel && setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => !cancel && toast.error("Erro ao carregar board", e instanceof Error ? e.message : String(e)))
       .finally(() => !cancel && setLoading(false));
     return () => {
       cancel = true;
@@ -68,11 +67,11 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       </div>
     );
   }
-  if (error || !board) {
+  if (!board) {
     return (
       <div className="flex h-[400px] items-center justify-center gap-2 text-danger">
         <AlertCircle className="h-5 w-5" />
-        {error ?? "Board não encontrado"}
+        Board não encontrado
       </div>
     );
   }
@@ -168,7 +167,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error ?? "Erro ao mover card");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       // Refetch pra recuperar estado correto
       refetch();
     }
@@ -208,7 +207,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       if (!data?.ok) throw new Error(data?.error);
       setBoard((prev) => prev && { ...prev, cards: prev.cards.map((c) => (c.id === tempId ? data.card : c)) });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       setBoard((prev) => prev && { ...prev, cards: prev.cards.filter((c) => c.id !== tempId) });
     }
   }
@@ -230,7 +229,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       setBoard(
         (prev) => prev && { ...prev, cards: prev.cards.map((c) => (c.id === cardId ? before : c)) },
       );
@@ -246,7 +245,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       if (before) setBoard((prev) => prev && { ...prev, cards: [...prev.cards, before] });
     }
   }
@@ -275,7 +274,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
         (prev) => prev && { ...prev, lists: prev.lists.map((l) => (l.id === tempId ? data.list : l)) },
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       setBoard((prev) => prev && { ...prev, lists: prev.lists.filter((l) => l.id !== tempId) });
     }
   }
@@ -293,7 +292,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       if (before) {
         setBoard(
           (prev) => prev && { ...prev, lists: prev.lists.map((l) => (l.id === listId ? before : l)) },
@@ -329,7 +328,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
         if (!data?.ok) throw new Error(data?.error);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       // rollback
       const rollback = new Set(pinnedIds);
       setPinnedIds(rollback);
@@ -349,7 +348,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
       if (before) setBoard((prev) => prev && { ...prev, lists: [...prev.lists, before] });
     }
   }
@@ -363,15 +362,6 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   return (
     <div className="space-y-3">
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
-          <AlertCircle className="h-3.5 w-3.5" />
-          {error}
-          <button onClick={() => setError(null)} className="ml-auto text-fg-muted hover:text-fg">
-            ✕
-          </button>
-        </div>
-      )}
 
       <DndContext
         sensors={sensors}

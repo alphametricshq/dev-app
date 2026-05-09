@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { UpdateBanner } from "@/components/update-banner";
+import { Toaster } from "@/components/toast/toaster";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <main className="flex-1 overflow-y-auto">{children}</main>
       <UpdateBanner />
+      <Toaster />
     </div>
   );
 }

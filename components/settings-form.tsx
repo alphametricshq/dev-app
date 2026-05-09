@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Github, Trello, Timer, ExternalLink, Save, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Github, Trello, Timer, ExternalLink, Save, Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 type CredView = { set: boolean; preview: string | null; source?: "env" | "file" | "none" };
 type CredsView = Record<string, CredView>;
@@ -30,7 +31,6 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showSecrets, setShowSecrets] = useState(false);
 
   useEffect(() => {
@@ -49,9 +49,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setResult(null);
 
-    // Envia somente campos preenchidos (vazio = manter atual)
     const body: Partial<FormState> = {};
     (Object.keys(form) as (keyof FormState)[]).forEach((k) => {
       if (form[k].trim() !== "") body[k] = form[k].trim();
@@ -67,9 +65,12 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
       if (!res.ok || !data?.ok) throw new Error(data?.error ?? "Erro ao salvar");
       setView(data.credentials);
       setForm(EMPTY_FORM);
-      setResult({ ok: true, msg: "Credenciais salvas. Próximo sync vai usar os valores novos." });
+      toast.success("Configurações salvas", "O próximo sync vai usar os valores novos.");
     } catch (err) {
-      setResult({ ok: false, msg: err instanceof Error ? err.message : "Erro desconhecido" });
+      toast.error(
+        "Erro ao salvar",
+        err instanceof Error ? err.message : "Erro desconhecido",
+      );
     } finally {
       setSaving(false);
     }
@@ -213,17 +214,6 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
           {showSecrets ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           {showSecrets ? "Esconder secrets digitados" : "Mostrar secrets digitados"}
         </button>
-        {result && (
-          <span
-            className={cn(
-              "flex items-center gap-1.5 text-xs",
-              result.ok ? "text-success" : "text-danger",
-            )}
-          >
-            {result.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
-            {result.msg}
-          </span>
-        )}
         <button type="submit" disabled={saving} className="btn-primary ml-auto">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {saving ? "Salvando..." : "Salvar"}
