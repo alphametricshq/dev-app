@@ -1,7 +1,7 @@
 import { Topbar } from "@/components/topbar";
 import { LevelCard } from "@/components/gamification/level-card";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
-import { GoalsList } from "@/components/gamification/goals-list";
+import { GoalForecastList } from "@/components/gamification/goal-forecast-card";
 import { getGamificationSummary } from "@/lib/gamification";
 import { Award, Flame, Target } from "lucide-react";
 
@@ -38,7 +38,7 @@ export default async function ConquistasPage() {
             <Target className="h-4 w-4 text-accent" />
             <h2 className="text-base font-semibold text-fg">Metas</h2>
           </header>
-          <GoalsList goals={data.goals} />
+          <GoalForecastList goals={data.goals} />
         </section>
 
         <section>
