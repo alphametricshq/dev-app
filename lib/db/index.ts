@@ -99,4 +99,26 @@ CREATE TABLE IF NOT EXISTS pinned_cards (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pinned_cards_at ON pinned_cards(pinned_at DESC);
+
+CREATE TABLE IF NOT EXISTS habits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '✨',
+  color TEXT NOT NULL DEFAULT 'accent',
+  target_per_week INTEGER NOT NULL DEFAULT 7,
+  archived INTEGER NOT NULL DEFAULT 0,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS habit_logs (
+  habit_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  logged_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (habit_id, date),
+  FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_habit_logs_date ON habit_logs(date DESC);
+CREATE INDEX IF NOT EXISTS idx_habits_archived ON habits(archived, position);
 `;

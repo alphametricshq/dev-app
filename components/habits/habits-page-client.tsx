@@ -1,0 +1,171 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Plus, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { HabitCard } from "./habit-card";
+import { HabitForm, type HabitFormValues } from "./habit-form";
+import type { HabitWithStats } from "@/lib/db/habits-queries";
+
+export function HabitsPageClient() {
+  const [habits, setHabits] = useState<HabitWithStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<HabitWithStats | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function refresh() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/habits");
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error ?? "Falha ao carregar");
+      setHabits(data.habits);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreate(values: HabitFormValues) {
+    const res = await fetch("/api/habits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const data = await res.json();
+    if (!data?.ok) throw new Error(data?.error);
+    await refresh();
+  }
+
+  async function handleEdit(values: HabitFormValues) {
+    if (!editing) return;
+    const res = await fetch(`/api/habits/${editing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const data = await res.json();
+    if (!data?.ok) throw new Error(data?.error);
+    await refresh();
+  }
+
+  async function handleArchive(habit: HabitWithStats) {
+    setHabits((prev) => prev.filter((h) => h.id !== habit.id));
+    try {
+      const res = await fetch(`/api/habits/${habit.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      refresh();
+    }
+  }
+
+  async function handleToggle(habit: HabitWithStats) {
+    const next = !habit.doneToday;
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.id === habit.id
+          ? {
+              ...h,
+              doneToday: next,
+              currentStreak: next ? h.currentStreak + 1 : Math.max(0, h.currentStreak - 1),
+              thisWeekCount: next ? h.thisWeekCount + 1 : Math.max(0, h.thisWeekCount - 1),
+            }
+          : h,
+      ),
+    );
+    try {
+      const res = await fetch(`/api/habits/${habit.id}/log`, {
+        method: next ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: next ? JSON.stringify({}) : undefined,
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+      // refresh assíncrono pra recalcular streaks corretamente
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      refresh();
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center text-fg-muted">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Carregando hábitos...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          <AlertCircle className="h-3.5 w-3.5" />
+          {error}
+          <button onClick={() => setError(null)} className="ml-auto text-fg-muted hover:text-fg">
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-fg-muted">
+          {habits.length === 0
+            ? "Nenhum hábito ainda. Crie o primeiro pra começar a tracker."
+            : `${habits.length} hábito${habits.length === 1 ? "" : "s"} ativo${habits.length === 1 ? "" : "s"}`}
+        </p>
+        <button onClick={() => setCreating(true)} className="btn-primary py-1.5 text-xs">
+          <Plus className="h-3.5 w-3.5" />
+          Novo hábito
+        </button>
+      </div>
+
+      {habits.length === 0 ? (
+        <div className="card flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <Sparkles className="h-8 w-8 text-accent" />
+          <div>
+            <h3 className="text-sm font-semibold text-fg">Comece com um hábito</h3>
+            <p className="mt-1 text-xs text-fg-muted">
+              Sugestões: ler 30min, exercício, beber 2L água, meditar, dormir 7h+...
+            </p>
+          </div>
+          <button onClick={() => setCreating(true)} className="btn-primary py-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" />
+            Criar primeiro hábito
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {habits.map((h) => (
+            <HabitCard
+              key={h.id}
+              habit={h}
+              onToggleToday={handleToggle}
+              onEdit={(habit) => setEditing(habit)}
+              onArchive={handleArchive}
+            />
+          ))}
+        </div>
+      )}
+
+      {creating && <HabitForm onClose={() => setCreating(false)} onSave={handleCreate} />}
+      {editing && (
+        <HabitForm
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleEdit}
+        />
+      )}
+    </div>
+  );
+}
