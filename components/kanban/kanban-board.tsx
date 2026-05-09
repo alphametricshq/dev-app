@@ -25,23 +25,29 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<TrelloCardItem | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [addingList, setAddingList] = useState(false);
   const [listDraft, setListDraft] = useState("");
   const listInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // Fetch board
+  // Fetch board + pinned cards
   useEffect(() => {
     let cancel = false;
     setLoading(true);
     setError(null);
-    fetch(`/api/trello/boards/${boardId}`)
-      .then((r) => r.json())
-      .then((data) => {
+    Promise.all([
+      fetch(`/api/trello/boards/${boardId}`).then((r) => r.json()),
+      fetch(`/api/trello/cards/pinned`).then((r) => r.json()),
+    ])
+      .then(([boardData, pinnedData]) => {
         if (cancel) return;
-        if (!data?.ok) throw new Error(data?.error ?? "Falha ao carregar board");
-        setBoard(data.board);
+        if (!boardData?.ok) throw new Error(boardData?.error ?? "Falha ao carregar board");
+        setBoard(boardData.board);
+        if (pinnedData?.ok && Array.isArray(pinnedData.cards)) {
+          setPinnedIds(new Set(pinnedData.cards.map((c: { card_id: string }) => c.card_id)));
+        }
       })
       .catch((e) => !cancel && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancel && setLoading(false));
@@ -296,6 +302,40 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     }
   }
 
+  async function togglePinCard(card: TrelloCardItem, currentlyPinned: boolean) {
+    if (!board) return;
+    const next = new Set(pinnedIds);
+    if (currentlyPinned) next.delete(card.id);
+    else next.add(card.id);
+    setPinnedIds(next);
+    try {
+      const list = board.lists.find((l) => l.id === card.idList);
+      if (currentlyPinned) {
+        const res = await fetch(`/api/trello/cards/${card.id}/pin`, { method: "DELETE" });
+        const data = await res.json();
+        if (!data?.ok) throw new Error(data?.error);
+      } else {
+        const res = await fetch(`/api/trello/cards/${card.id}/pin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            board_id: card.idBoard,
+            card_name: card.name,
+            list_name: list?.name ?? null,
+            url: card.url,
+          }),
+        });
+        const data = await res.json();
+        if (!data?.ok) throw new Error(data?.error);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      // rollback
+      const rollback = new Set(pinnedIds);
+      setPinnedIds(rollback);
+    }
+  }
+
   async function archiveList(listId: string) {
     if (!board) return;
     const before = board.lists.find((l) => l.id === listId);
@@ -347,9 +387,11 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
                 key={list.id}
                 list={list}
                 cards={cardsOf(list.id)}
+                pinnedIds={pinnedIds}
                 onAddCard={addCard}
                 onOpenCard={(c) => setOpenCardId(c.id)}
                 onDeleteCard={deleteCard}
+                onTogglePinCard={togglePinCard}
                 onRenameList={renameList}
                 onArchiveList={archiveList}
               />
@@ -415,9 +457,11 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           <CardModal
             card={openCard}
             list={list}
+            pinned={pinnedIds.has(openCardId)}
             onClose={() => setOpenCardId(null)}
             onSave={(input) => updateCardDetails(openCardId, input)}
             onDelete={() => deleteCard(openCardId)}
+            onTogglePin={() => togglePinCard(openCard, pinnedIds.has(openCardId))}
           />
         );
       })()}

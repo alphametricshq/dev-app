@@ -88,4 +88,15 @@ CREATE TABLE IF NOT EXISTS trello_tasks_completed (
 
 CREATE INDEX IF NOT EXISTS idx_trello_tasks_completed_at ON trello_tasks_completed(completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_trello_tasks_board ON trello_tasks_completed(board_id);
+
+CREATE TABLE IF NOT EXISTS pinned_cards (
+  card_id TEXT PRIMARY KEY,
+  board_id TEXT,
+  card_name TEXT,
+  list_name TEXT,
+  url TEXT,
+  pinned_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pinned_cards_at ON pinned_cards(pinned_at DESC);
 `;

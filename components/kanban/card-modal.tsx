@@ -1,21 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Trash2, ExternalLink, AlignLeft } from "lucide-react";
+import { X, Trash2, ExternalLink, AlignLeft, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 
 export function CardModal({
   card,
   list,
+  pinned,
   onClose,
   onSave,
   onDelete,
+  onTogglePin,
 }: {
   card: TrelloCardItem;
   list: TrelloListItem | undefined;
+  pinned: boolean;
   onClose: () => void;
   onSave: (input: { name: string; desc: string }) => void;
   onDelete: () => void;
+  onTogglePin: () => void;
 }) {
   const [name, setName] = useState(card.name);
   const [desc, setDesc] = useState(card.desc);
@@ -97,6 +102,18 @@ export function CardModal({
 
         <div className="flex items-center justify-between gap-2 border-t border-border bg-bg-subtle/40 px-6 py-3">
           <div className="flex items-center gap-2">
+            <button
+              onClick={onTogglePin}
+              className={cn(
+                "btn flex items-center gap-1.5 py-1.5 text-xs border",
+                pinned
+                  ? "border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+                  : "border-border bg-bg-subtle text-fg-muted hover:bg-bg-hover hover:text-fg",
+              )}
+            >
+              <Star className={cn("h-3.5 w-3.5", pinned && "fill-warning")} />
+              {pinned ? "Fixado" : "Fixar"}
+            </button>
             {card.url && (
               <a
                 href={card.url}

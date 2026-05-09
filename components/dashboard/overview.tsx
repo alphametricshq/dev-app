@@ -4,6 +4,7 @@ import {
   getTrelloByBoard,
   getRecentTrelloTasks,
   getLastSyncs,
+  getPinnedCards,
 } from "@/lib/db/queries";
 import { getGamificationSummary } from "@/lib/gamification";
 import { getGithubAnalytics } from "@/lib/analytics/github";
@@ -14,14 +15,14 @@ import { TasksTimeseries } from "./tasks-timeseries";
 import { BoardsBreakdown } from "./boards-breakdown";
 import { RecentTasks } from "./recent-tasks";
 import { SyncStatus } from "./sync-status";
+import { DailyFocus } from "./daily-focus";
 import { LevelCard } from "@/components/gamification/level-card";
-import { GoalsList } from "@/components/gamification/goals-list";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
-  const [contribs, byDay, byBoard, recent, syncs, gami, ghAnalytics, trAnalytics] = await Promise.all([
+  const [contribs, byDay, byBoard, recent, syncs, gami, ghAnalytics, trAnalytics, pinnedCards] = await Promise.all([
     getGithubContributions(365),
     getTrelloCompletedByDay(90),
     getTrelloByBoard(90),
@@ -30,7 +31,9 @@ export async function OverviewDashboard() {
     getGamificationSummary(),
     getGithubAnalytics(),
     getTrelloAnalytics(),
+    getPinnedCards(3),
   ]);
+  const dailyGoal = gami.goals.find((g) => g.period === "daily")!;
 
   const combinedInsights = [...ghAnalytics.insights, ...trAnalytics.insights].slice(0, 5);
 
@@ -44,17 +47,9 @@ export async function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <LevelCard data={gami} compact />
-        </div>
-        <div className="card">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
-            Meta de hoje
-          </div>
-          <GoalsList goals={gami.goals.filter((g) => g.period === "daily")} />
-        </div>
-      </div>
+      <DailyFocus dailyGoal={dailyGoal} pinnedCards={pinnedCards} />
+
+      <LevelCard data={gami} compact />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

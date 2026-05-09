@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2, AlignLeft } from "lucide-react";
+import { Trash2, AlignLeft, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TrelloCardItem } from "@/lib/integrations/trello-api";
 
@@ -10,11 +10,15 @@ export function KanbanCard({
   card,
   onOpen,
   onDelete,
+  onTogglePin,
+  pinned = false,
   isDragging: isDraggingProp,
 }: {
   card: TrelloCardItem;
   onOpen?: (card: TrelloCardItem) => void;
   onDelete?: (cardId: string) => void;
+  onTogglePin?: (card: TrelloCardItem, currentlyPinned: boolean) => void;
+  pinned?: boolean;
   isDragging?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -36,7 +40,8 @@ export function KanbanCard({
       {...listeners}
       onClick={() => onOpen?.(card)}
       className={cn(
-        "group relative cursor-pointer touch-none rounded-lg border border-border bg-bg-card p-2.5 text-sm shadow-sm transition-colors hover:border-border-strong hover:bg-bg-hover",
+        "group relative cursor-pointer touch-none rounded-lg border bg-bg-card p-2.5 text-sm shadow-sm transition-colors hover:bg-bg-hover",
+        pinned ? "border-warning/40 hover:border-warning/60" : "border-border hover:border-border-strong",
         showOverlay && "opacity-40",
       )}
     >
@@ -50,19 +55,39 @@ export function KanbanCard({
             </div>
           )}
         </div>
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm(`Apagar "${card.name}"?`)) onDelete(card.id);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="shrink-0 rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-danger/20 hover:text-danger group-hover:opacity-100"
-            aria-label="Apagar"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <div className="flex shrink-0 items-start gap-0.5">
+          {onTogglePin && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin(card, pinned);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={cn(
+                "rounded p-1 transition-all",
+                pinned
+                  ? "text-warning opacity-100"
+                  : "text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-warning group-hover:opacity-100",
+              )}
+              aria-label={pinned ? "Desafixar" : "Fixar como prioridade"}
+            >
+              <Star className={cn("h-3.5 w-3.5", pinned && "fill-warning")} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Apagar "${card.name}"?`)) onDelete(card.id);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-danger/20 hover:text-danger group-hover:opacity-100"
+              aria-label="Apagar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
