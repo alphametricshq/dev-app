@@ -10,6 +10,8 @@ export type BadgeContext = {
   activeDays: number;
   habitsCount: number;
   bestHabitStreak: number;
+  totalPomodoros: number;
+  bestPomodoroDay: number;
 };
 
 export type BadgeStatus = {
@@ -248,6 +250,38 @@ const BADGES: BadgeDefinition[] = [
     check: (c) => ({
       unlocked: c.bestHabitStreak >= 30,
       progress: { current: Math.min(c.bestHabitStreak, 30), target: 30 },
+    }),
+  },
+
+  // ========= Pomodoro =========
+  {
+    id: "first-pomodoro",
+    title: "Primeiro pomodoro",
+    description: "Complete sua primeira sessão de foco",
+    emoji: "🍅",
+    check: (c) => ({
+      unlocked: c.totalPomodoros >= 1,
+      progress: { current: Math.min(c.totalPomodoros, 1), target: 1 },
+    }),
+  },
+  {
+    id: "pomodoro-day-10",
+    title: "Maratona de foco",
+    description: "10 pomodoros em um único dia",
+    emoji: "🧠",
+    check: (c) => ({
+      unlocked: c.bestPomodoroDay >= 10,
+      progress: { current: Math.min(c.bestPomodoroDay, 10), target: 10 },
+    }),
+  },
+  {
+    id: "pomodoro-100",
+    title: "Centena de foco",
+    description: "100 pomodoros completos",
+    emoji: "🎓",
+    check: (c) => ({
+      unlocked: c.totalPomodoros >= 100,
+      progress: { current: Math.min(c.totalPomodoros, 100), target: 100 },
     }),
   },
 ];

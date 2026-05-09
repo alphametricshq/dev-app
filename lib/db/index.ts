@@ -121,4 +121,18 @@ CREATE TABLE IF NOT EXISTS habit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_habit_logs_date ON habit_logs(date DESC);
 CREATE INDEX IF NOT EXISTS idx_habits_archived ON habits(archived, position);
+
+CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL DEFAULT 'focus',
+  duration_min INTEGER NOT NULL,
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at TEXT NOT NULL DEFAULT (datetime('now')),
+  card_id TEXT,
+  card_name TEXT,
+  completed INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS idx_pomodoro_finished_at ON pomodoro_sessions(finished_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pomodoro_type ON pomodoro_sessions(type);
 `;
