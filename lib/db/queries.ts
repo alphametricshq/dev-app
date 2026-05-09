@@ -184,6 +184,28 @@ export async function getRecentTrelloTasks(limit = 10): Promise<TrelloTaskRow[]>
   }));
 }
 
+// ============== Settings (key-value) ==============
+
+export async function getSetting(key: string): Promise<string | null> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT value FROM settings WHERE key = ?`,
+    args: [key],
+  });
+  return r.rows[0]?.value as string | undefined ?? null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  await initDb();
+  const c = db();
+  await c.execute({
+    sql: `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+    args: [key, value],
+  });
+}
+
 // ============== Pinned Cards ==============
 
 export type PinnedCard = {

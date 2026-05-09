@@ -93,7 +93,7 @@ export async function getGamificationSummary(): Promise<GamificationSummary> {
     totalPomodoros: pomodoroStats.totalSessions,
     bestPomodoroDay,
   });
-  const goals = computeGoals({ contribs, tasksByDay });
+  const goals = await computeGoals({ contribs, tasksByDay });
 
   return {
     xp: xpBreakdown.total,
