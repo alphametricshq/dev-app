@@ -184,6 +184,78 @@ export async function getRecentTrelloTasks(limit = 10): Promise<TrelloTaskRow[]>
   }));
 }
 
+// ============== Pinned Cards ==============
+
+export type PinnedCard = {
+  card_id: string;
+  board_id: string | null;
+  card_name: string | null;
+  list_name: string | null;
+  url: string | null;
+  pinned_at: string;
+};
+
+export async function pinCard(input: {
+  card_id: string;
+  board_id?: string | null;
+  card_name?: string | null;
+  list_name?: string | null;
+  url?: string | null;
+}): Promise<void> {
+  await initDb();
+  const c = db();
+  await c.execute({
+    sql: `INSERT INTO pinned_cards (card_id, board_id, card_name, list_name, url)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(card_id) DO UPDATE SET
+            board_id = excluded.board_id,
+            card_name = excluded.card_name,
+            list_name = excluded.list_name,
+            url = excluded.url,
+            pinned_at = datetime('now')`,
+    args: [
+      input.card_id,
+      input.board_id ?? null,
+      input.card_name ?? null,
+      input.list_name ?? null,
+      input.url ?? null,
+    ],
+  });
+}
+
+export async function unpinCard(cardId: string): Promise<void> {
+  await initDb();
+  const c = db();
+  await c.execute({ sql: `DELETE FROM pinned_cards WHERE card_id = ?`, args: [cardId] });
+}
+
+export async function getPinnedCards(limit = 10): Promise<PinnedCard[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT card_id, board_id, card_name, list_name, url, pinned_at
+          FROM pinned_cards
+          ORDER BY pinned_at DESC
+          LIMIT ?`,
+    args: [limit],
+  });
+  return r.rows.map((row) => ({
+    card_id: row.card_id as string,
+    board_id: row.board_id as string | null,
+    card_name: row.card_name as string | null,
+    list_name: row.list_name as string | null,
+    url: row.url as string | null,
+    pinned_at: row.pinned_at as string,
+  }));
+}
+
+export async function getPinnedCardIds(): Promise<Set<string>> {
+  await initDb();
+  const c = db();
+  const r = await c.execute(`SELECT card_id FROM pinned_cards`);
+  return new Set(r.rows.map((row) => row.card_id as string));
+}
+
 // ============== Sync Log ==============
 
 export async function logSyncStart(source: string): Promise<number> {

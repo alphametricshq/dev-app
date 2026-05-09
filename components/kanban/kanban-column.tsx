@@ -11,17 +11,21 @@ import { cn } from "@/lib/utils";
 export function KanbanColumn({
   list,
   cards,
+  pinnedIds,
   onAddCard,
   onOpenCard,
   onDeleteCard,
+  onTogglePinCard,
   onRenameList,
   onArchiveList,
 }: {
   list: TrelloListItem;
   cards: TrelloCardItem[];
+  pinnedIds: Set<string>;
   onAddCard: (listId: string, name: string) => void;
   onOpenCard: (card: TrelloCardItem) => void;
   onDeleteCard: (cardId: string) => void;
+  onTogglePinCard: (card: TrelloCardItem, currentlyPinned: boolean) => void;
   onRenameList: (listId: string, name: string) => void;
   onArchiveList: (listId: string) => void;
 }) {
@@ -150,8 +154,10 @@ export function KanbanColumn({
             <KanbanCard
               key={card.id}
               card={card}
+              pinned={pinnedIds.has(card.id)}
               onOpen={onOpenCard}
               onDelete={onDeleteCard}
+              onTogglePin={onTogglePinCard}
             />
           ))}
         </SortableContext>
