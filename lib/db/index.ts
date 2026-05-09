@@ -135,4 +135,15 @@ CREATE TABLE IF NOT EXISTS pomodoro_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_pomodoro_finished_at ON pomodoro_sessions(finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pomodoro_type ON pomodoro_sessions(type);
+
+CREATE TABLE IF NOT EXISTS journal_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  content TEXT NOT NULL,
+  tags TEXT NOT NULL DEFAULT '',
+  mood TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_journal_created ON journal_entries(created_at DESC);
 `;

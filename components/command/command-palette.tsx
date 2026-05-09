@@ -20,6 +20,7 @@ import {
   Plus,
   ExternalLink,
   CornerDownLeft,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ const NAV_COMMANDS_TPL = (router: ReturnType<typeof useRouter>): Command[] => [
   { id: "go-foco", category: "Páginas", title: "Foco (Pomodoro)", icon: Brain, action: () => router.push("/foco") },
   { id: "go-board", category: "Páginas", title: "Board", icon: KanbanSquare, action: () => router.push("/board") },
   { id: "go-habitos", category: "Páginas", title: "Hábitos", icon: Repeat, action: () => router.push("/habitos") },
+  { id: "go-journal", category: "Páginas", title: "Journal", icon: BookOpen, keywords: ["nota", "anotacao"], action: () => router.push("/journal") },
   { id: "go-retro", category: "Páginas", title: "Retrospectiva", icon: CalendarDays, action: () => router.push("/retrospectiva") },
   { id: "go-conquistas", category: "Páginas", title: "Conquistas", icon: Trophy, action: () => router.push("/conquistas") },
   { id: "go-github", category: "Páginas", title: "GitHub", icon: Github, action: () => router.push("/github") },
