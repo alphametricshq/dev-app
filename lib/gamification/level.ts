@@ -4,12 +4,14 @@ export const XP_PER_GITHUB_CONTRIB = 5;
 export const XP_PER_TRELLO_TASK = 10;
 export const XP_PER_ACTIVE_DAY = 50;
 export const XP_PER_STREAK_DAY = 15;
+export const XP_PER_POMODORO = 15;
 
 export type XpBreakdown = {
   github: number;
   trello: number;
   activeDays: number;
   streak: number;
+  pomodoros: number;
   total: number;
 };
 
@@ -59,13 +61,15 @@ export function computeXp(input: {
   totalTrelloTasks: number;
   activeDays: number;
   currentStreak: number;
+  totalPomodoros?: number;
 }): XpBreakdown {
   const github = input.totalGithubContribs * XP_PER_GITHUB_CONTRIB;
   const trello = input.totalTrelloTasks * XP_PER_TRELLO_TASK;
   const activeDays = input.activeDays * XP_PER_ACTIVE_DAY;
   const streak = input.currentStreak * XP_PER_STREAK_DAY;
-  const total = github + trello + activeDays + streak;
-  return { github, trello, activeDays, streak, total };
+  const pomodoros = (input.totalPomodoros ?? 0) * XP_PER_POMODORO;
+  const total = github + trello + activeDays + streak + pomodoros;
+  return { github, trello, activeDays, streak, pomodoros, total };
 }
 
 // Titulos por faixa de nivel (gamificacao narrativa)
