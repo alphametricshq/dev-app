@@ -1,4 +1,5 @@
 import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { listHabitsWithStats } from "@/lib/db/habits-queries";
 import { computeXp, levelFromXp, levelTitle } from "./level";
 import { evaluateBadges, type BadgeStatus } from "./badges";
 import { computeGoals, type GoalProgress } from "./goals";
@@ -53,9 +54,10 @@ function computeStreaks(contribs: { date: string; count: number }[]): {
 }
 
 export async function getGamificationSummary(): Promise<GamificationSummary> {
-  const [contribs, tasksByDay] = await Promise.all([
+  const [contribs, tasksByDay, habits] = await Promise.all([
     getGithubContributions(365),
     getTrelloCompletedByDay(365),
+    listHabitsWithStats(),
   ]);
 
   const totalGithub = contribs.reduce((s, d) => s + d.count, 0);
@@ -65,6 +67,7 @@ export async function getGamificationSummary(): Promise<GamificationSummary> {
     tasksByDay.filter((d) => d.count > 0 && !contribs.find((c) => c.date === d.date && c.count > 0))
       .length;
   const { current: currentStreak, longest: longestStreak } = computeStreaks(contribs);
+  const bestHabitStreak = habits.reduce((max, h) => Math.max(max, h.longestStreak), 0);
 
   const xpBreakdown = computeXp({
     totalGithubContribs: totalGithub,
@@ -81,6 +84,8 @@ export async function getGamificationSummary(): Promise<GamificationSummary> {
     currentStreak,
     longestStreak,
     activeDays,
+    habitsCount: habits.length,
+    bestHabitStreak,
   });
   const goals = computeGoals({ contribs, tasksByDay });
 

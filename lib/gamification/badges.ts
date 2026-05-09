@@ -8,6 +8,8 @@ export type BadgeContext = {
   currentStreak: number;
   longestStreak: number;
   activeDays: number;
+  habitsCount: number;
+  bestHabitStreak: number;
 };
 
 export type BadgeStatus = {
@@ -215,6 +217,38 @@ const BADGES: BadgeDefinition[] = [
       const hasOverlap = trDates.some((d) => ghDates.has(d));
       return { unlocked: hasOverlap };
     },
+  },
+
+  // ========= Hábitos =========
+  {
+    id: "first-habit",
+    title: "Primeiro hábito",
+    description: "Crie seu primeiro hábito diário",
+    emoji: "🌿",
+    check: (c) => ({
+      unlocked: c.habitsCount >= 1,
+      progress: { current: Math.min(c.habitsCount, 1), target: 1 },
+    }),
+  },
+  {
+    id: "habit-streak-7",
+    title: "Constância",
+    description: "7 dias seguidos em qualquer hábito",
+    emoji: "🌳",
+    check: (c) => ({
+      unlocked: c.bestHabitStreak >= 7,
+      progress: { current: Math.min(c.bestHabitStreak, 7), target: 7 },
+    }),
+  },
+  {
+    id: "habit-streak-30",
+    title: "Disciplina",
+    description: "30 dias seguidos em qualquer hábito",
+    emoji: "⛰️",
+    check: (c) => ({
+      unlocked: c.bestHabitStreak >= 30,
+      progress: { current: Math.min(c.bestHabitStreak, 30), target: 30 },
+    }),
   },
 ];
 
