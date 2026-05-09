@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy, Repeat, CalendarDays, Brain } from "lucide-react";
+import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy, Repeat, CalendarDays, Brain, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { href: "/foco", label: "Foco", icon: Brain },
   { href: "/board", label: "Board", icon: KanbanSquare },
   { href: "/habitos", label: "Hábitos", icon: Repeat },
+  { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/retrospectiva", label: "Retrospectiva", icon: CalendarDays },
   { href: "/conquistas", label: "Conquistas", icon: Trophy },
   { href: "/github", label: "GitHub", icon: Github },
