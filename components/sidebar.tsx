@@ -66,7 +66,11 @@ export function Sidebar() {
           </span>
           <span className="text-[11px] text-fg-muted">Auto-sync ativo</span>
         </div>
-        <div className="mt-1 text-[10px] text-fg-subtle">v0.1 · local</div>
+        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-fg-subtle">
+          <kbd className="rounded border border-border bg-bg-card px-1 font-mono">?</kbd>
+          <span>atalhos</span>
+          <span className="ml-auto opacity-60">v0.1</span>
+        </div>
       </div>
     </aside>
   );
