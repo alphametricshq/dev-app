@@ -8,6 +8,9 @@ import net from "node:net";
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const DEV_URL = "http://localhost:3000";
 
+// Desabilita o popup de traducao automatica do Chromium
+app.commandLine.appendSwitch("disable-features", "Translate");
+
 let mainWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;

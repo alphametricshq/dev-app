@@ -11,6 +11,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Dashboard Pessoal",
   description: "Dashboard de produtividade pessoal — GitHub & Trello",
+  other: {
+    "google": "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -19,7 +22,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${inter.variable}`}>
+    <html lang="pt-BR" className={`dark ${inter.variable}`} translate="no">
+      <head>
+        <meta name="google" content="notranslate" />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );
