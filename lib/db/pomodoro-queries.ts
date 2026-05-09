@@ -54,6 +54,49 @@ export async function recordPomodoroSession(input: {
   };
 }
 
+export async function listPomodoroSessionsByCard(cardId: string): Promise<PomodoroSession[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT id, type, duration_min, started_at, finished_at, card_id, card_name, completed
+          FROM pomodoro_sessions
+          WHERE card_id = ?
+          ORDER BY finished_at DESC`,
+    args: [cardId],
+  });
+  return r.rows.map((row) => ({
+    id: Number(row.id),
+    type: row.type as PomodoroSession["type"],
+    duration_min: Number(row.duration_min),
+    started_at: row.started_at as string,
+    finished_at: row.finished_at as string,
+    card_id: row.card_id as string | null,
+    card_name: row.card_name as string | null,
+    completed: Number(row.completed),
+  }));
+}
+
+export async function getPomodoroCountsByCard(): Promise<Map<string, { count: number; minutes: number }>> {
+  await initDb();
+  const c = db();
+  const r = await c.execute(`
+    SELECT card_id,
+           COUNT(*) as count,
+           COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) as minutes
+    FROM pomodoro_sessions
+    WHERE completed = 1 AND card_id IS NOT NULL
+    GROUP BY card_id
+  `);
+  const m = new Map<string, { count: number; minutes: number }>();
+  for (const row of r.rows) {
+    m.set(row.card_id as string, {
+      count: Number(row.count),
+      minutes: Number(row.minutes),
+    });
+  }
+  return m;
+}
+
 export async function listPomodoroSessions(limit = 20): Promise<PomodoroSession[]> {
   await initDb();
   const c = db();

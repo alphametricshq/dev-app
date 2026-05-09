@@ -126,6 +126,10 @@ export function configureSession(type: SessionType, durationMin: number) {
   setState({ type, durationMin });
 }
 
+export function setSessionCard(cardId: string | null, cardName: string | null) {
+  setState({ cardId, cardName });
+}
+
 export function start(opts?: {
   type?: SessionType;
   durationMin?: number;

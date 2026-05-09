@@ -54,9 +54,11 @@ export function FloatingTimer() {
           </svg>
           <Icon className={cn("relative h-4 w-4", colors.text)} />
         </div>
-        <div>
+        <div className="min-w-0 max-w-[160px]">
           <div className="font-mono text-sm font-semibold tabular-nums text-fg">{display}</div>
-          <div className="text-[10px] text-fg-muted">{PomodoroLabels[state.type]}</div>
+          <div className="truncate text-[10px] text-fg-muted">
+            {state.cardName ? state.cardName : PomodoroLabels[state.type]}
+          </div>
         </div>
       </Link>
 
