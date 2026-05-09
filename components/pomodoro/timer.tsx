@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 type SessionType = "focus" | "short_break" | "long_break";
 
@@ -60,6 +61,14 @@ export function PomodoroTimer({
         const data = await res.json();
         if (data?.ok) {
           onSessionComplete();
+          if (type === "focus") {
+            toast.success(
+              `Pomodoro completo! +15 XP`,
+              `${durations[type]} minutos de foco registrados.`,
+            );
+          } else {
+            toast.info("Pausa concluída", "Bora pro próximo foco?");
+          }
           // Notificação nativa
           if (typeof window !== "undefined" && "Notification" in window) {
             if (Notification.permission === "granted") {
@@ -71,7 +80,7 @@ export function PomodoroTimer({
           }
         }
       } catch {
-        // ignora erro silencioso
+        toast.error("Erro ao salvar sessão");
       }
     }
     setSecondsLeft(durations[type] * 60);
