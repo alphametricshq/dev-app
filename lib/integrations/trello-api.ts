@@ -100,6 +100,28 @@ export function deleteCard(cardId: string) {
   return call<void>("DELETE", `/cards/${cardId}`);
 }
 
+// ============== Search ==============
+
+export type TrelloSearchCard = {
+  id: string;
+  name: string;
+  idBoard: string;
+  idList: string;
+  url: string;
+  closed: boolean;
+};
+
+export async function searchCards(query: string): Promise<TrelloSearchCard[]> {
+  if (!query.trim()) return [];
+  const r = await call<{ cards?: TrelloSearchCard[] }>("GET", "/search", {
+    query: query.trim(),
+    modelTypes: "cards",
+    card_fields: "name,idBoard,idList,url,closed",
+    cards_limit: 15,
+  });
+  return (r.cards ?? []).filter((c) => !c.closed);
+}
+
 // ============== Lists ==============
 
 export function createList(input: { idBoard: string; name: string; pos?: number | "top" | "bottom" }) {

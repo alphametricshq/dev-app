@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/sidebar";
 import { UpdateBanner } from "@/components/update-banner";
 import { Toaster } from "@/components/toast/toaster";
 import { FloatingTimer } from "@/components/pomodoro/floating-timer";
+import { CommandPalette } from "@/components/command/command-palette";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <FloatingTimer />
       <UpdateBanner />
       <Toaster />
+      <CommandPalette />
     </div>
   );
 }
