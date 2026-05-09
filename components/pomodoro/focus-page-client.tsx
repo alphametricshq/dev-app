@@ -1,20 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Brain, Clock, Flame, Calendar } from "lucide-react";
 import { PomodoroTimer } from "./timer";
 import { SessionsHistory } from "./sessions-history";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { usePomodoroState } from "@/lib/use-pomodoro";
 import type { PomodoroSession, PomodoroStats } from "@/lib/db/pomodoro-queries";
 
 export function FocusPageClient() {
   const [sessions, setSessions] = useState<PomodoroSession[]>([]);
   const [stats, setStats] = useState<PomodoroStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const pomodoro = usePomodoroState();
+  const lastStatusRef = useRef(pomodoro?.status);
 
   useEffect(() => {
     refresh();
   }, []);
+
+  // Quando status volta pra idle (sessão completou), refresh
+  useEffect(() => {
+    const last = lastStatusRef.current;
+    const current = pomodoro?.status;
+    if (last && last !== "idle" && current === "idle") {
+      // pequeno delay pra garantir que o POST registrou
+      setTimeout(() => refresh(), 500);
+    }
+    lastStatusRef.current = current;
+  }, [pomodoro?.status]);
 
   async function refresh() {
     setLoading(true);
