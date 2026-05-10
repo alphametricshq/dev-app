@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/lib/toast";
+import { playGoal, playLevelUp } from "@/lib/sounds";
 
 // Pub/sub pra burst de confete on-demand
 let burstListeners: ((trigger: number) => void)[] = [];
@@ -89,6 +90,9 @@ export function celebrate(opts: { title: string; description?: string; key: stri
   if (hasCelebrated(opts.key)) return false;
   markCelebrated(opts.key);
   fireConfetti();
+  // Som diferente pra level vs meta
+  if (opts.key.startsWith("level:")) playLevelUp();
+  else playGoal();
   toast.success(opts.title, opts.description, 6000);
   return true;
 }
