@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   start,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/pomodoro-store";
 import { usePomodoroState, useRemainingSeconds, useProgressPct } from "@/lib/use-pomodoro";
 import { CardSelector } from "./card-selector";
+import { DeepFocusOverlay } from "./deep-focus-overlay";
 
 const TYPE_COLORS: Record<SessionType, { bg: string; text: string }> = {
   focus: { bg: "bg-accent", text: "text-accent" },
@@ -29,6 +30,7 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
   const remaining = useRemainingSeconds();
   const progress = useProgressPct();
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [deepFocus, setDeepFocus] = useState(false);
 
   if (!state) return null;
 
@@ -66,7 +68,16 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
   }
 
   return (
-    <div className="card flex flex-col items-center gap-6 py-10">
+    <div className="card relative flex flex-col items-center gap-6 py-10">
+      {/* Botão modo foco profundo (canto sup. direito) */}
+      <button
+        onClick={() => setDeepFocus(true)}
+        className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-accent hover:text-accent"
+        title="Modo foco profundo"
+      >
+        <Maximize2 className="h-3 w-3" />
+        Foco profundo
+      </button>
       {/* Tipo selector */}
       <div className="flex gap-1 rounded-full border border-border bg-bg-subtle p-1">
         {(Object.keys(PomodoroLabels) as SessionType[]).map((t) => (
@@ -201,6 +212,12 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
           }}
         />
       )}
+
+      <DeepFocusOverlay
+        open={deepFocus}
+        onClose={() => setDeepFocus(false)}
+        onSessionComplete={onSessionComplete}
+      />
     </div>
   );
 }
