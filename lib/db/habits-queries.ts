@@ -231,6 +231,40 @@ export async function listHabitsWithStats(): Promise<HabitWithStats[]> {
   });
 }
 
+export async function getHabitHistory(habitId: number, days = 365): Promise<string[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT date FROM habit_logs
+          WHERE habit_id = ? AND date >= date('now', ?)
+          ORDER BY date ASC`,
+    args: [habitId, `-${days} days`],
+  });
+  return r.rows.map((row) => row.date as string);
+}
+
+export async function getHabitById(habitId: number): Promise<Habit | null> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT id, name, emoji, color, target_per_week, archived, position, created_at
+          FROM habits WHERE id = ?`,
+    args: [habitId],
+  });
+  if (r.rows.length === 0) return null;
+  const row = r.rows[0];
+  return {
+    id: Number(row.id),
+    name: row.name as string,
+    emoji: row.emoji as string,
+    color: row.color as string,
+    target_per_week: Number(row.target_per_week),
+    archived: Number(row.archived),
+    position: Number(row.position),
+    created_at: row.created_at as string,
+  };
+}
+
 export async function getHabitsCount(): Promise<{ active: number; total: number }> {
   await initDb();
   const c = db();
