@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --accent: 265 85% 65%;
+    --accent-hover: 265 85% 70%;
+    --accent-subtle: 265 50% 25%;
+  }
   html {
     color-scheme: dark;
   }

@@ -25,9 +25,9 @@ export default {
           subtle: "hsl(220 8% 45%)",
         },
         accent: {
-          DEFAULT: "hsl(265 85% 65%)",
-          hover: "hsl(265 85% 70%)",
-          subtle: "hsl(265 50% 25%)",
+          DEFAULT: "hsl(var(--accent))",
+          hover: "hsl(var(--accent-hover))",
+          subtle: "hsl(var(--accent-subtle))",
         },
         success: "hsl(150 60% 50%)",
         warning: "hsl(40 90% 60%)",
