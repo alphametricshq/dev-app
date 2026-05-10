@@ -4,6 +4,20 @@ const TRELLO_API = "https://api.trello.com/1";
 
 export type TrelloBoardSummary = { id: string; name: string };
 export type TrelloListItem = { id: string; name: string; idBoard: string; closed: boolean; pos: number };
+// Cores possíveis: red, orange, yellow, green, blue, purple, pink, sky, lime, black, null
+export type TrelloLabelColor =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple"
+  | "pink"
+  | "sky"
+  | "lime"
+  | "black"
+  | null;
+export type TrelloLabel = { id: string; idBoard: string; name: string; color: TrelloLabelColor };
 export type TrelloCardItem = {
   id: string;
   name: string;
@@ -15,12 +29,15 @@ export type TrelloCardItem = {
   due: string | null;
   dueComplete: boolean;
   closed: boolean;
+  idLabels: string[];
+  labels: TrelloLabel[];
 };
 export type TrelloBoardFull = {
   id: string;
   name: string;
   lists: TrelloListItem[];
   cards: TrelloCardItem[];
+  labels: TrelloLabel[];
 };
 
 function auth() {
@@ -64,18 +81,22 @@ export function getMyBoards(): Promise<TrelloBoardSummary[]> {
 }
 
 export async function getBoardFull(boardId: string): Promise<TrelloBoardFull> {
-  const [board, lists, cards] = await Promise.all([
+  const [board, lists, cards, labels] = await Promise.all([
     call<{ id: string; name: string }>("GET", `/boards/${boardId}`, { fields: "id,name" }),
     call<TrelloListItem[]>("GET", `/boards/${boardId}/lists`, {
       fields: "id,name,idBoard,closed,pos",
       filter: "open",
     }),
     call<TrelloCardItem[]>("GET", `/boards/${boardId}/cards`, {
-      fields: "id,name,desc,idList,idBoard,pos,url,due,dueComplete,closed",
+      fields: "id,name,desc,idList,idBoard,pos,url,due,dueComplete,closed,idLabels,labels",
       filter: "open",
     }),
+    call<TrelloLabel[]>("GET", `/boards/${boardId}/labels`, {
+      fields: "id,idBoard,name,color",
+      limit: 1000,
+    }),
   ]);
-  return { id: board.id, name: board.name, lists, cards };
+  return { id: board.id, name: board.name, lists, cards, labels };
 }
 
 // ============== Cards ==============

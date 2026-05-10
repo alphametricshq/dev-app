@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Trash2, ExternalLink, AlignLeft, Star, Brain } from "lucide-react";
+import { X, Trash2, ExternalLink, AlignLeft, Star, Brain, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardChecklists } from "./card-checklists";
 import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 import type { PomodoroSession } from "@/lib/db/pomodoro-queries";
+import { labelBg } from "@/lib/trello-labels";
 
 export function CardModal({
   card,
@@ -98,6 +99,29 @@ export function CardModal({
         </div>
 
         <div className="space-y-5 px-6 py-5">
+          {card.labels && card.labels.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
+                <Tag className="h-3.5 w-3.5" />
+                Labels
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {card.labels.map((l) => (
+                  <span
+                    key={l.id}
+                    className="rounded px-2 py-1 text-xs font-semibold text-white"
+                    style={{ backgroundColor: labelBg(l.color) }}
+                  >
+                    {l.name || l.color || "—"}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-1.5 text-[11px] text-fg-subtle">
+                Edite labels diretamente no Trello
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
               <AlignLeft className="h-3.5 w-3.5" />

@@ -13,12 +13,14 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Tag, X } from "lucide-react";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { CardModal } from "./card-modal";
 import { toast } from "@/lib/toast";
 import type { TrelloBoardFull, TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
+import { labelBg } from "@/lib/trello-labels";
+import { cn } from "@/lib/utils";
 
 export function KanbanBoard({ boardId }: { boardId: string }) {
   const [board, setBoard] = useState<TrelloBoardFull | null>(null);
@@ -29,6 +31,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   const [pomodoroCounts, setPomodoroCounts] = useState<Record<string, { count: number; minutes: number }>>({});
   const [addingList, setAddingList] = useState(false);
   const [listDraft, setListDraft] = useState("");
+  const [labelFilter, setLabelFilter] = useState<Set<string>>(new Set());
   const listInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -85,7 +88,30 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   function cardsOf(listId: string) {
     if (!board) return [];
-    return board.cards.filter((c) => c.idList === listId).sort((a, b) => a.pos - b.pos);
+    return board.cards
+      .filter((c) => c.idList === listId)
+      .filter((c) => {
+        if (labelFilter.size === 0) return true;
+        return c.idLabels?.some((id) => labelFilter.has(id));
+      })
+      .sort((a, b) => a.pos - b.pos);
+  }
+
+  // Labels usadas em pelo menos um card aberto, agrupadas pra rendering
+  const usedLabels = (() => {
+    if (!board) return [];
+    const usedIds = new Set<string>();
+    for (const c of board.cards) for (const id of c.idLabels ?? []) usedIds.add(id);
+    return board.labels.filter((l) => usedIds.has(l.id));
+  })();
+
+  function toggleLabelFilter(id: string) {
+    setLabelFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   function findCard(cardId: string) {
@@ -200,6 +226,8 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       due: null,
       dueComplete: false,
       closed: false,
+      idLabels: [],
+      labels: [],
     };
     setBoard((prev) => prev && { ...prev, cards: [...prev.cards, optimistic] });
     try {
@@ -367,6 +395,37 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   return (
     <div className="space-y-3">
+      {usedLabels.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Tag className="h-3.5 w-3.5 text-fg-subtle" />
+          {usedLabels.map((l) => {
+            const active = labelFilter.has(l.id);
+            return (
+              <button
+                key={l.id}
+                onClick={() => toggleLabelFilter(l.id)}
+                title={l.name || l.color || ""}
+                className={cn(
+                  "rounded px-2 py-0.5 text-[11px] font-semibold leading-tight text-white transition-opacity",
+                  labelFilter.size > 0 && !active && "opacity-40 hover:opacity-100",
+                )}
+                style={{ backgroundColor: labelBg(l.color) }}
+              >
+                {l.name || l.color || "—"}
+              </button>
+            );
+          })}
+          {labelFilter.size > 0 && (
+            <button
+              onClick={() => setLabelFilter(new Set())}
+              className="ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+            >
+              <X className="h-3 w-3" />
+              Limpar
+            </button>
+          )}
+        </div>
+      )}
 
       <DndContext
         sensors={sensors}
