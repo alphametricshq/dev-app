@@ -19,6 +19,7 @@ import { DailyFocus } from "./daily-focus";
 import { LevelCard } from "@/components/gamification/level-card";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
+import { GoalCelebration } from "@/components/goal-celebration";
 import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
@@ -47,6 +48,7 @@ export async function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
+      <GoalCelebration goals={gami.goals} level={gami.level} />
       <DailyFocus dailyGoal={dailyGoal} pinnedCards={pinnedCards} />
 
       <LevelCard data={gami} compact />

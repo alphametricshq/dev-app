@@ -5,6 +5,7 @@ import { FloatingTimer } from "@/components/pomodoro/floating-timer";
 import { CommandPalette } from "@/components/command/command-palette";
 import { ShortcutsProvider } from "@/components/shortcuts-provider";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
+import { ConfettiCanvas } from "@/components/confetti";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <CommandPalette />
       <ShortcutsProvider />
       <ShortcutsHelp />
+      <ConfettiCanvas />
     </div>
   );
 }
