@@ -20,10 +20,12 @@ import { LevelCard } from "@/components/gamification/level-card";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { GoalCelebration } from "@/components/goal-celebration";
+import { ActivityFeed } from "./activity-feed";
+import { getTodayActivity } from "@/lib/activity-feed";
 import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
-  const [contribs, byDay, byBoard, recent, syncs, gami, ghAnalytics, trAnalytics, pinnedCards] = await Promise.all([
+  const [contribs, byDay, byBoard, recent, syncs, gami, ghAnalytics, trAnalytics, pinnedCards, todayActivity] = await Promise.all([
     getGithubContributions(365),
     getTrelloCompletedByDay(90),
     getTrelloByBoard(90),
@@ -33,6 +35,7 @@ export async function OverviewDashboard() {
     getGithubAnalytics(),
     getTrelloAnalytics(),
     getPinnedCards(3),
+    getTodayActivity(),
   ]);
   const dailyGoal = gami.goals.find((g) => g.period === "daily")!;
 
@@ -129,9 +132,11 @@ export async function OverviewDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ActivityFeed events={todayActivity} />
         <RecentTasks tasks={recent} />
-        <SyncStatus syncs={syncs} />
       </div>
+
+      <SyncStatus syncs={syncs} />
     </div>
   );
 }
