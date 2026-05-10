@@ -2,13 +2,23 @@ import { Topbar } from "@/components/topbar";
 import { LevelCard } from "@/components/gamification/level-card";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
 import { GoalForecastList } from "@/components/gamification/goal-forecast-card";
+import { XpHistoryChart } from "@/components/gamification/xp-history-chart";
 import { getGamificationSummary } from "@/lib/gamification";
+import { computeXpHistory } from "@/lib/gamification/xp-history";
+import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { getPomodoroByDay } from "@/lib/db/pomodoro-queries";
 import { Award, Flame, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConquistasPage() {
-  const data = await getGamificationSummary();
+  const [data, contribs, tasksByDay, pomodorosByDay] = await Promise.all([
+    getGamificationSummary(),
+    getGithubContributions(365),
+    getTrelloCompletedByDay(365),
+    getPomodoroByDay(90),
+  ]);
+  const xpHistory = computeXpHistory({ contribs, tasksByDay, pomodorosByDay, days: 90 });
 
   return (
     <>
@@ -32,6 +42,8 @@ export default async function ConquistasPage() {
             </div>
           </div>
         </div>
+
+        <XpHistoryChart history={xpHistory} />
 
         <section>
           <header className="mb-3 flex items-center gap-2">

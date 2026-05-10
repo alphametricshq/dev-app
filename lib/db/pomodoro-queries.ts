@@ -119,6 +119,20 @@ export async function listPomodoroSessions(limit = 20): Promise<PomodoroSession[
   }));
 }
 
+export async function getPomodoroByDay(days: number): Promise<{ date: string; count: number }[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT date(finished_at) AS date, COUNT(*) AS count
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND finished_at >= datetime('now', ?)
+          GROUP BY date(finished_at)
+          ORDER BY date ASC`,
+    args: [`-${days} days`],
+  });
+  return r.rows.map((row) => ({ date: row.date as string, count: Number(row.count) }));
+}
+
 export type PomodoroStats = {
   totalSessions: number;
   totalFocusMin: number;
