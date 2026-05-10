@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Trash2, ExternalLink, AlignLeft, Star, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CardChecklists } from "./card-checklists";
 import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 import type { PomodoroSession } from "@/lib/db/pomodoro-queries";
 
@@ -114,6 +115,8 @@ export function CardModal({
               para salvar e fechar.
             </div>
           </div>
+
+          <CardChecklists cardId={card.id} />
 
           {pomodoros.length > 0 && (
             <div>
