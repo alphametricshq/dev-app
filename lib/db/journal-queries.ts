@@ -113,6 +113,70 @@ export async function listJournalEntries(opts?: {
   return r.rows.map((row) => rowToEntry(row as unknown as Record<string, unknown>));
 }
 
+export type JournalStats = {
+  totalEntries: number;
+  tagCounts: { tag: string; count: number }[];
+  moodCounts: { mood: string; count: number }[];
+  byMonth: { label: string; count: number }[];
+};
+
+export async function getJournalStats(): Promise<JournalStats> {
+  await initDb();
+  const c = db();
+
+  const totalR = await c.execute(`SELECT COUNT(*) as n FROM journal_entries`);
+  const totalEntries = Number(totalR.rows[0]?.n ?? 0);
+
+  // Tag counts via parsing client-side (tags são CSV)
+  const tagsR = await c.execute(
+    `SELECT tags FROM journal_entries WHERE tags != ''`,
+  );
+  const tagMap = new Map<string, number>();
+  for (const row of tagsR.rows) {
+    const tagsStr = row.tags as string;
+    for (const tag of tagsStr.split(",").map((t) => t.trim()).filter(Boolean)) {
+      tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
+    }
+  }
+  const tagCounts = Array.from(tagMap.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+
+  // Mood counts (apenas moods não-vazios)
+  const moodR = await c.execute(
+    `SELECT mood, COUNT(*) as n FROM journal_entries WHERE mood != '' GROUP BY mood ORDER BY n DESC`,
+  );
+  const moodCounts = moodR.rows.map((row) => ({
+    mood: row.mood as string,
+    count: Number(row.n),
+  }));
+
+  // Entries por mês (últimos 12)
+  const byMonthR = await c.execute(
+    `SELECT strftime('%Y-%m', created_at) as ym, COUNT(*) as n
+     FROM journal_entries
+     WHERE created_at >= date('now', '-12 months')
+     GROUP BY ym
+     ORDER BY ym ASC`,
+  );
+  const monthMap = new Map<string, number>();
+  for (const row of byMonthR.rows) {
+    monthMap.set(row.ym as string, Number(row.n));
+  }
+  const months: { label: string; count: number }[] = [];
+  const now = new Date();
+  now.setDate(1);
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now);
+    d.setMonth(now.getMonth() - i);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const monthLabel = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][d.getMonth()];
+    months.push({ label: monthLabel, count: monthMap.get(ym) ?? 0 });
+  }
+
+  return { totalEntries, tagCounts, moodCounts, byMonth: months };
+}
+
 export async function getAllJournalTags(): Promise<string[]> {
   await initDb();
   const c = db();

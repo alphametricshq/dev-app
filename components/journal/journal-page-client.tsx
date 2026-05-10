@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { Search, Loader2, BookOpen, X } from "lucide-react";
 import { EntryEditor } from "./entry-editor";
 import { EntryCard } from "./entry-card";
+import { JournalStatsSidebar } from "./journal-stats-sidebar";
 import { toast } from "@/lib/toast";
-import { cn } from "@/lib/utils";
-import type { JournalEntry } from "@/lib/db/journal-queries";
+import type { JournalEntry, JournalStats } from "@/lib/db/journal-queries";
 
 export function JournalPageClient() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [allTags, setAllTags] = useState<string[]>([]);
+  const [stats, setStats] = useState<JournalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export function JournalPageClient() {
       const data = await res.json();
       if (data?.ok) {
         setEntries(data.entries);
-        setAllTags(data.tags);
+        if (data.stats) setStats(data.stats);
       }
     } finally {
       setLoading(false);
@@ -91,87 +91,73 @@ export function JournalPageClient() {
   }
 
   return (
-    <div className="space-y-5">
-      <EntryEditor onSubmit={handleCreate} submitLabel="Adicionar" autoFocus />
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="space-y-5">
+        <EntryEditor onSubmit={handleCreate} submitLabel="Adicionar" autoFocus />
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar nas suas notas..."
-              className="input pl-9"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar nas suas notas..."
+            className="input pl-9"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+        {activeTag && (
+          <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
+            <span className="text-accent">Filtrando por #{activeTag}</span>
             <button
               onClick={() => setActiveTag(null)}
-              className={cn(
-                "rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
-                !activeTag
-                  ? "border-accent bg-accent/15 text-accent"
-                  : "border-border text-fg-muted hover:bg-bg-hover hover:text-fg",
-              )}
+              className="ml-auto text-fg-muted hover:text-fg"
             >
-              todas
+              <X className="h-3.5 w-3.5" />
             </button>
-            {allTags.map((t) => (
-              <button
-                key={t}
-                onClick={() => setActiveTag(activeTag === t ? null : t)}
-                className={cn(
-                  "rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
-                  activeTag === t
-                    ? "border-accent bg-accent/15 text-accent"
-                    : "border-border text-fg-muted hover:bg-bg-hover hover:text-fg",
-                )}
-              >
-                #{t}
-              </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex h-32 items-center justify-center text-fg-muted">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Carregando...
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="card flex flex-col items-center gap-2 py-10 text-center">
+            <BookOpen className="h-8 w-8 text-fg-subtle" />
+            <p className="text-sm text-fg-muted">
+              {search || activeTag
+                ? "Nenhuma nota encontrada com esses filtros."
+                : "Nenhuma nota ainda. Comece escrevendo acima."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map((entry) => (
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div className="flex h-32 items-center justify-center text-fg-muted">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Carregando...
-        </div>
-      ) : entries.length === 0 ? (
-        <div className="card flex flex-col items-center gap-2 py-10 text-center">
-          <BookOpen className="h-8 w-8 text-fg-subtle" />
-          <p className="text-sm text-fg-muted">
-            {search || activeTag
-              ? "Nenhuma nota encontrada com esses filtros."
-              : "Nenhuma nota ainda. Comece escrevendo acima."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {entries.map((entry) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+      <JournalStatsSidebar
+        stats={stats}
+        activeTag={activeTag}
+        onSelectTag={(tag) => setActiveTag(tag)}
+      />
     </div>
   );
 }
