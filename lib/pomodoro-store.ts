@@ -2,6 +2,7 @@
 // Permite que o timer continue rodando ao navegar entre páginas.
 
 import { toast } from "@/lib/toast";
+import { playComplete, playBreak } from "@/lib/sounds";
 
 export type SessionType = "focus" | "short_break" | "long_break";
 
@@ -226,8 +227,10 @@ export async function complete() {
     const data = await res.json();
     if (data?.ok) {
       if (completedType === "focus") {
+        playComplete();
         toast.success("Pomodoro completo! +15 XP", `${completedDuration} minutos de foco registrados.`);
       } else {
+        playBreak();
         toast.info("Pausa concluída", "Bora pro próximo foco?");
       }
       // Notificação nativa
