@@ -45,6 +45,8 @@ export async function OverviewDashboard() {
   const taskTotal = byDay.reduce((s, d) => s + d.count, 0);
   const streak = currentStreak(contribs);
   const avgPerDay = taskTotal > 0 ? (taskTotal / 90).toFixed(1) : "0";
+  const ghLast7 = contribs.slice(-7).map((d) => d.count);
+  const taskLast7 = lastNDays(byDay, 7);
 
   return (
     <div className="space-y-6">
@@ -57,8 +59,9 @@ export async function OverviewDashboard() {
         <StatCard
           label="Contribuições GitHub"
           value={ghTotal.toLocaleString("pt-BR")}
-          hint="último ano"
+          hint="último ano · 7 dias"
           icon={GitCommit}
+          sparkline={ghLast7}
           accent="github"
         />
         <StatCard
@@ -66,6 +69,7 @@ export async function OverviewDashboard() {
           value={ghLast30.toLocaleString("pt-BR")}
           hint="contribuições"
           icon={TrendingUp}
+          sparkline={ghLast7}
           accent="github"
         />
         <StatCard
@@ -73,6 +77,7 @@ export async function OverviewDashboard() {
           value={taskTotal.toLocaleString("pt-BR")}
           hint={`média ${avgPerDay}/dia · 90 dias`}
           icon={CheckSquare}
+          sparkline={taskLast7}
           accent="trello"
         />
         <StatCard
@@ -129,6 +134,20 @@ export async function OverviewDashboard() {
       </div>
     </div>
   );
+}
+
+function lastNDays(data: { date: string; count: number }[], n: number): number[] {
+  const map = new Map(data.map((d) => [d.date, d.count]));
+  const result: number[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    result.push(map.get(iso) ?? 0);
+  }
+  return result;
 }
 
 function currentStreak(contribs: { date: string; count: number }[]): number {

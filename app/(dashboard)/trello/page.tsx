@@ -29,14 +29,26 @@ export default async function TrelloPage() {
   const last7 = analytics.totalLast7;
   const activeDays = byDay.filter((d) => d.count > 0).length;
   const avg = total > 0 ? (total / 90).toFixed(1) : "0";
+  const last7Spark = (() => {
+    const map = new Map(byDay.map((d) => [d.date, d.count]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      result.push(map.get(d.toISOString().slice(0, 10)) ?? 0);
+    }
+    return result;
+  })();
 
   return (
     <>
       <Topbar title="Trello" subtitle="Tarefas concluídas + análise de desempenho" />
       <div className="space-y-6 px-8 py-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total (90 dias)" value={total} icon={CheckSquare} accent="trello" />
-          <StatCard label="Últimos 7 dias" value={last7} icon={Flame} accent="trello" />
+          <StatCard label="Total (90 dias)" value={total} icon={CheckSquare} sparkline={last7Spark} accent="trello" />
+          <StatCard label="Últimos 7 dias" value={last7} icon={Flame} sparkline={last7Spark} accent="trello" />
           <StatCard label="Velocidade" value={`${analytics.velocityPerWeek.toFixed(1)}/sem`} icon={BarChart3} accent="trello" />
           <StatCard label="Dias ativos" value={`${activeDays}/90`} icon={Calendar} accent="trello" />
         </div>

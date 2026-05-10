@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { Sparkline } from "./sparkline";
 
 export function StatCard({
   label,
@@ -7,6 +8,7 @@ export function StatCard({
   hint,
   icon: Icon,
   trend,
+  sparkline,
   accent = "default",
 }: {
   label: string;
@@ -14,12 +16,19 @@ export function StatCard({
   hint?: string;
   icon?: LucideIcon;
   trend?: { value: number; label: string };
+  sparkline?: number[];
   accent?: "default" | "github" | "trello";
 }) {
   const accentClass = {
     default: "text-accent bg-accent/15",
     github: "text-success bg-success/15",
     trello: "text-warning bg-warning/15",
+  }[accent];
+
+  const sparklineColor = {
+    default: "hsl(265 85% 65%)",
+    github: "hsl(150 60% 50%)",
+    trello: "hsl(40 90% 60%)",
   }[accent];
 
   return (
@@ -32,7 +41,12 @@ export function StatCard({
           </div>
         )}
       </div>
-      <div className="mt-3 text-3xl font-semibold tracking-tight text-fg">{value}</div>
+      <div className="mt-3 flex items-end justify-between gap-2">
+        <div className="text-3xl font-semibold tracking-tight text-fg">{value}</div>
+        {sparkline && sparkline.length > 0 && (
+          <Sparkline values={sparkline} color={sparklineColor} />
+        )}
+      </div>
       <div className="mt-2 flex items-center gap-2 text-xs">
         {trend && (
           <span className={cn("font-medium", trend.value >= 0 ? "text-success" : "text-danger")}>
