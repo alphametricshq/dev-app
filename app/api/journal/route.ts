@@ -3,6 +3,7 @@ import {
   listJournalEntries,
   createJournalEntry,
   getAllJournalTags,
+  getJournalStats,
 } from "@/lib/db/journal-queries";
 
 export const runtime = "nodejs";
@@ -16,11 +17,12 @@ export async function GET(req: Request) {
     const fromDate = url.searchParams.get("from") ?? undefined;
     const toDate = url.searchParams.get("to") ?? undefined;
 
-    const [entries, tags] = await Promise.all([
+    const [entries, tags, stats] = await Promise.all([
       listJournalEntries({ query, tag, fromDate, toDate, limit: 200 }),
       getAllJournalTags(),
+      getJournalStats(),
     ]);
-    return NextResponse.json({ ok: true, entries, tags });
+    return NextResponse.json({ ok: true, entries, tags, stats });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "Erro desconhecido" },
