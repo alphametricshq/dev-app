@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Trash2, AlignLeft, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TrelloCardItem } from "@/lib/integrations/trello-api";
+import { labelBg } from "@/lib/trello-labels";
 
 export function KanbanCard({
   card,
@@ -30,6 +31,7 @@ export function KanbanCard({
 
   const showOverlay = isDraggingProp || isDragging;
   const hasDesc = card.desc && card.desc.trim().length > 0;
+  const labels = card.labels ?? [];
 
   return (
     <div
@@ -49,6 +51,29 @@ export function KanbanCard({
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
+          {labels.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1">
+              {labels.map((l) =>
+                l.name ? (
+                  <span
+                    key={l.id}
+                    title={l.color ?? ""}
+                    className="inline-block max-w-[140px] truncate rounded px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-white"
+                    style={{ backgroundColor: labelBg(l.color) }}
+                  >
+                    {l.name}
+                  </span>
+                ) : (
+                  <span
+                    key={l.id}
+                    title={l.color ?? "label"}
+                    className="inline-block h-2 w-8 rounded-full"
+                    style={{ backgroundColor: labelBg(l.color) }}
+                  />
+                )
+              )}
+            </div>
+          )}
           <div className="whitespace-pre-wrap break-words text-fg">{card.name}</div>
           {(hasDesc || pomodoroCount > 0) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-fg-subtle">
