@@ -6,6 +6,7 @@ import { CommandPalette } from "@/components/command/command-palette";
 import { ShortcutsProvider } from "@/components/shortcuts-provider";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { ConfettiCanvas } from "@/components/confetti";
+import { DailyInsightTrigger } from "@/components/daily-insight-trigger";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ShortcutsProvider />
       <ShortcutsHelp />
       <ConfettiCanvas />
+      <DailyInsightTrigger />
     </div>
   );
 }
