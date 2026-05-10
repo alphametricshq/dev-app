@@ -22,7 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${inter.variable}`} translate="no">
+    <html
+      lang="pt-BR"
+      className={`dark ${inter.variable}`}
+      translate="no"
+      suppressHydrationWarning
+    >
       <head>
         <meta name="google" content="notranslate" />
         <script
