@@ -11,24 +11,18 @@ export type ActivityEvent = {
   emoji?: string;
 };
 
-function isoToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export async function getTodayActivity(): Promise<ActivityEvent[]> {
+export async function getRecentActivity(days = 7, limit = 40): Promise<ActivityEvent[]> {
   await initDb();
   const c = db();
-  const today = isoToday();
 
   const events: ActivityEvent[] = [];
 
-  // Pomodoros completos hoje
   const pomos = await c.execute({
     sql: `SELECT id, type, duration_min, finished_at, card_name
           FROM pomodoro_sessions
-          WHERE completed = 1 AND date(finished_at) = ?
-          ORDER BY finished_at DESC`,
-    args: [today],
+          WHERE completed = 1 AND finished_at >= datetime('now', ?)
+          ORDER BY finished_at DESC LIMIT ?`,
+    args: [`-${days} days`, limit],
   });
   for (const r of pomos.rows) {
     const type = r.type as string;
@@ -47,18 +41,17 @@ export async function getTodayActivity(): Promise<ActivityEvent[]> {
     });
   }
 
-  // Hábitos marcados hoje (join pra pegar nome + emoji)
   const habits = await c.execute({
     sql: `SELECT hl.habit_id, hl.logged_at, h.name, h.emoji
           FROM habit_logs hl
           JOIN habits h ON h.id = hl.habit_id
-          WHERE hl.date = ?
-          ORDER BY hl.logged_at DESC`,
-    args: [today],
+          WHERE hl.date >= date('now', ?)
+          ORDER BY hl.logged_at DESC LIMIT ?`,
+    args: [`-${days} days`, limit],
   });
   for (const r of habits.rows) {
     events.push({
-      id: `habit-${r.habit_id}`,
+      id: `habit-${r.habit_id}-${r.logged_at}`,
       type: "habit",
       timestamp: r.logged_at as string,
       title: `${r.name} concluído`,
@@ -66,13 +59,12 @@ export async function getTodayActivity(): Promise<ActivityEvent[]> {
     });
   }
 
-  // Journal entries hoje
   const journal = await c.execute({
     sql: `SELECT id, content, mood, created_at
           FROM journal_entries
-          WHERE date(created_at) = ?
-          ORDER BY created_at DESC`,
-    args: [today],
+          WHERE created_at >= datetime('now', ?)
+          ORDER BY created_at DESC LIMIT ?`,
+    args: [`-${days} days`, limit],
   });
   for (const r of journal.rows) {
     const content = r.content as string;
@@ -87,13 +79,12 @@ export async function getTodayActivity(): Promise<ActivityEvent[]> {
     });
   }
 
-  // Trello tarefas concluídas hoje
   const trello = await c.execute({
     sql: `SELECT id, card_name, board_name, completed_at
           FROM trello_tasks_completed
-          WHERE date(completed_at) = ?
-          ORDER BY completed_at DESC`,
-    args: [today],
+          WHERE completed_at >= datetime('now', ?)
+          ORDER BY completed_at DESC LIMIT ?`,
+    args: [`-${days} days`, limit],
   });
   for (const r of trello.rows) {
     events.push({
@@ -106,7 +97,6 @@ export async function getTodayActivity(): Promise<ActivityEvent[]> {
     });
   }
 
-  // Sort desc por timestamp
   events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-  return events;
+  return events.slice(0, limit);
 }

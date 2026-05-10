@@ -21,7 +21,7 @@ import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { GoalCelebration } from "@/components/goal-celebration";
 import { ActivityFeed } from "./activity-feed";
-import { getTodayActivity } from "@/lib/activity-feed";
+import { getRecentActivity } from "@/lib/activity-feed";
 import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
@@ -35,7 +35,7 @@ export async function OverviewDashboard() {
     getGithubAnalytics(),
     getTrelloAnalytics(),
     getPinnedCards(3),
-    getTodayActivity(),
+    getRecentActivity(7, 40),
   ]);
   const dailyGoal = gami.goals.find((g) => g.period === "daily")!;
 
