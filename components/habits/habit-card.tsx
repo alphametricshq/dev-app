@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, Archive, Flame } from "lucide-react";
+import { Check, Pencil, Archive, Flame, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
+import { HabitHistoryModal } from "./habit-history-modal";
 
 const COLOR_CLASSES: Record<string, { bg: string; ring: string; cell: string; text: string }> = {
   accent: { bg: "bg-accent", ring: "ring-accent/40", cell: "bg-accent", text: "text-accent" },
@@ -27,6 +28,7 @@ export function HabitCard({
 }) {
   const colors = COLOR_CLASSES[habit.color] ?? COLOR_CLASSES.accent;
   const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const done = optimisticDone ?? habit.doneToday;
 
   return (
@@ -55,6 +57,14 @@ export function HabitCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="rounded p-1 text-fg-subtle hover:bg-bg-hover hover:text-accent"
+            aria-label="Ver histórico"
+            title="Ver histórico"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={() => onEdit(habit)}
             className="rounded p-1 text-fg-subtle hover:bg-bg-hover hover:text-fg"
@@ -97,6 +107,8 @@ export function HabitCard({
         <Check className={cn("h-4 w-4", done ? "opacity-100" : "opacity-50")} />
         {done ? "Feito hoje" : "Marcar como feito"}
       </button>
+
+      {historyOpen && <HabitHistoryModal habitId={habit.id} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
