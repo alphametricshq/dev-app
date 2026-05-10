@@ -100,6 +100,65 @@ export function deleteCard(cardId: string) {
   return call<void>("DELETE", `/cards/${cardId}`);
 }
 
+// ============== Checklists ==============
+
+export type TrelloCheckItem = {
+  id: string;
+  name: string;
+  state: "complete" | "incomplete";
+  pos: number;
+};
+
+export type TrelloChecklist = {
+  id: string;
+  name: string;
+  idCard: string;
+  pos: number;
+  checkItems: TrelloCheckItem[];
+};
+
+export function getChecklistsForCard(cardId: string): Promise<TrelloChecklist[]> {
+  return call<TrelloChecklist[]>("GET", `/cards/${cardId}/checklists`, {
+    checkItems: "all",
+    checkItem_fields: "name,state,pos",
+    fields: "id,name,idCard,pos",
+  });
+}
+
+export function createChecklist(input: { idCard: string; name: string }) {
+  return call<TrelloChecklist>("POST", "/checklists", {
+    idCard: input.idCard,
+    name: input.name,
+  });
+}
+
+export function deleteChecklist(checklistId: string) {
+  return call<void>("DELETE", `/checklists/${checklistId}`);
+}
+
+export function createCheckItem(checklistId: string, input: { name: string; pos?: "top" | "bottom" }) {
+  return call<TrelloCheckItem>("POST", `/checklists/${checklistId}/checkItems`, {
+    name: input.name,
+    pos: input.pos ?? "bottom",
+  });
+}
+
+export function updateCheckItem(
+  cardId: string,
+  checkItemId: string,
+  input: { state?: "complete" | "incomplete"; name?: string },
+) {
+  return call<TrelloCheckItem>(
+    "PUT",
+    `/cards/${cardId}/checkItem/${checkItemId}`,
+    input,
+  );
+}
+
+export function deleteCheckItem(checklistId: string, itemId: string) {
+  return call<void>("DELETE", `/checklists/${checklistId}/checkItems/${itemId}`);
+}
+
 // ============== Search ==============
 
 export type TrelloSearchCard = {
