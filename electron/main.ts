@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu, ipcMain } from "electron";
+import { app, BrowserWindow, shell, Menu, ipcMain, screen } from "electron";
 import { autoUpdater } from "electron-updater";
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
@@ -12,6 +12,7 @@ const DEV_URL = "http://localhost:3000";
 app.commandLine.appendSwitch("disable-features", "Translate");
 
 let mainWindow: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
@@ -110,6 +111,81 @@ async function startNextServer(): Promise<string> {
   return url;
 }
 
+function createOverlayWindow() {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.show();
+    overlayWindow.focus();
+    return;
+  }
+  const primary = screen.getPrimaryDisplay();
+  const { width: screenW } = primary.workAreaSize;
+  const winW = 360;
+  const winH = 64;
+  const x = Math.round((screenW - winW) / 2);
+  const y = 12;
+
+  overlayWindow = new BrowserWindow({
+    width: winW,
+    height: winH,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    backgroundColor: "#00000000",
+    hasShadow: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
+      additionalArguments: ["--pomodoro-overlay"],
+    },
+  });
+  overlayWindow.setAlwaysOnTop(true, "screen-saver");
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  overlayWindow.on("closed", () => {
+    overlayWindow = null;
+    // Avisa o mainWindow pra reexibir o FloatingTimer
+    mainWindow?.webContents.send("pomodoro-overlay-closed");
+  });
+
+  overlayWindow.loadURL(`${serverUrl}/pomodoro-overlay`).then(() => {
+    overlayWindow?.show();
+  });
+}
+
+function setupPomodoroOverlayIpc() {
+  ipcMain.on("pomodoro-overlay-open", () => {
+    createOverlayWindow();
+  });
+  ipcMain.on("pomodoro-overlay-close", () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.close();
+  });
+  // Estado vem do mainWindow, propaga pro overlay
+  ipcMain.on("pomodoro-state-broadcast", (_e, state: unknown) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.webContents.send("pomodoro-state-update", state);
+    }
+  });
+  // Overlay solicita estado atual (no boot)
+  ipcMain.on("pomodoro-state-request", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("pomodoro-state-request");
+    }
+  });
+  // Controles do overlay -> mainWindow
+  ipcMain.on("pomodoro-control", (_e, action: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("pomodoro-control", action);
+    }
+  });
+}
+
 function setupAutoUpdater() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
@@ -195,6 +271,7 @@ app.whenReady().then(async () => {
     }
     await createWindow();
     setupAutoUpdater();
+    setupPomodoroOverlayIpc();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
     const msg = e instanceof Error ? e.message : String(e);
@@ -216,5 +293,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
   if (serverProcess && !serverProcess.killed) serverProcess.kill();
 });

@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Play, Pause, X, Brain, Coffee } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Play, Pause, X, Brain, Coffee, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pause, resume, stop, PomodoroLabels, type SessionType } from "@/lib/pomodoro-store";
 import { usePomodoroState, useRemainingSeconds, useProgressPct } from "@/lib/use-pomodoro";
+
+type ElectronAPI = {
+  isElectron?: boolean;
+  openPomodoroOverlay?: () => void;
+  onPomodoroOverlayClosed?: (cb: () => void) => () => void;
+};
 
 const TYPE_COLORS: Record<SessionType, { ring: string; bar: string; text: string; icon: typeof Brain }> = {
   focus: { ring: "stroke-accent", bar: "bg-accent", text: "text-accent", icon: Brain },
@@ -18,9 +25,20 @@ export function FloatingTimer() {
   const state = usePomodoroState();
   const remaining = useRemainingSeconds();
   const progress = useProgressPct();
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [isElectron, setIsElectron] = useState(false);
 
-  // Esconde quando idle ou na página /foco (lá já tem o timer principal)
-  if (!state || state.status === "idle" || pathname === "/foco") return null;
+  useEffect(() => {
+    const api = (window as unknown as { electron?: ElectronAPI }).electron;
+    if (api?.isElectron) setIsElectron(true);
+    const off = api?.onPomodoroOverlayClosed?.(() => setOverlayOpen(false));
+    return () => {
+      off?.();
+    };
+  }, []);
+
+  // Esconde quando idle, na /foco (timer principal lá), ou quando overlay externo está aberto
+  if (!state || state.status === "idle" || pathname === "/foco" || overlayOpen) return null;
 
   const colors = TYPE_COLORS[state.type];
   const Icon = colors.icon;
@@ -31,6 +49,12 @@ export function FloatingTimer() {
 
   function handleStop() {
     if (confirm("Parar a sessão atual?")) stop();
+  }
+
+  function openOverlay() {
+    const api = (window as unknown as { electron?: ElectronAPI }).electron;
+    api?.openPomodoroOverlay?.();
+    setOverlayOpen(true);
   }
 
   return (
@@ -78,6 +102,16 @@ export function FloatingTimer() {
         >
           <X className="h-3.5 w-3.5" />
         </button>
+        {isElectron && (
+          <button
+            onClick={openOverlay}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-accent/15 hover:text-accent"
+            aria-label="Fixar no topo da tela"
+            title="Fixar no topo da tela (overlay always-on-top)"
+          >
+            <Pin className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
