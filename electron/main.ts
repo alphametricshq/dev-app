@@ -348,8 +348,13 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("error", (err) => {
-    console.error("[update] error:", err);
-    mainWindow?.webContents.send("update-error", err.message ?? String(err));
+    const msg = err?.message ?? String(err);
+    console.error("[update] error:", msg);
+    // Suprime erros típicos de repo privado / feed sem auth — não polui UI
+    if (/404/.test(msg) || /releases\.atom/i.test(msg) || /authentication token/i.test(msg)) {
+      return;
+    }
+    mainWindow?.webContents.send("update-error", msg);
   });
 
   ipcMain.on("install-update", () => {

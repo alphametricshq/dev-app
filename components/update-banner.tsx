@@ -23,6 +23,37 @@ type Status =
   | { kind: "downloaded"; version: string }
   | { kind: "error"; message: string };
 
+const DISMISS_KEY = "update-banner-dismissed-v1";
+
+function hashMessage(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return String(h);
+}
+
+function isDismissed(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY);
+    if (!raw) return false;
+    return JSON.parse(raw)[key] === true;
+  } catch {
+    return false;
+  }
+}
+
+function persistDismiss(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    obj[key] = true;
+    localStorage.setItem(DISMISS_KEY, JSON.stringify(obj));
+  } catch {
+    // ignore
+  }
+}
+
 export function UpdateBanner() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [dismissed, setDismissed] = useState(false);
@@ -30,14 +61,24 @@ export function UpdateBanner() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.electron) return;
     const offA = window.electron.onUpdateAvailable((info) => {
+      const key = `available-${info.version}`;
+      if (isDismissed(key)) return;
       setStatus({ kind: "available", version: info.version });
       setDismissed(false);
     });
     const offD = window.electron.onUpdateDownloaded((info) => {
+      const key = `downloaded-${info.version}`;
+      if (isDismissed(key)) return;
       setStatus({ kind: "downloaded", version: info.version });
       setDismissed(false);
     });
     const offE = window.electron.onUpdateError((msg) => {
+      // Filtros adicionais no client: feed atom 404, repo privado
+      if (/404/.test(msg) || /releases\.atom/i.test(msg) || /authentication token/i.test(msg)) {
+        return;
+      }
+      const key = `error-${hashMessage(msg)}`;
+      if (isDismissed(key)) return;
       setStatus({ kind: "error", message: msg });
       setDismissed(false);
     });
@@ -47,6 +88,13 @@ export function UpdateBanner() {
       offE();
     };
   }, []);
+
+  function handleDismiss() {
+    setDismissed(true);
+    if (status.kind === "available") persistDismiss(`available-${status.version}`);
+    else if (status.kind === "downloaded") persistDismiss(`downloaded-${status.version}`);
+    else if (status.kind === "error") persistDismiss(`error-${hashMessage(status.message)}`);
+  }
 
   if (status.kind === "idle" || dismissed) return null;
 
@@ -58,7 +106,7 @@ export function UpdateBanner() {
           accent="text-accent"
           title={`Versão ${status.version} disponível`}
           desc="Baixando em background..."
-          onDismiss={() => setDismissed(true)}
+          onDismiss={handleDismiss}
         />
       )}
       {status.kind === "downloaded" && (
@@ -67,7 +115,7 @@ export function UpdateBanner() {
           accent="text-success"
           title={`Versão ${status.version} pronta`}
           desc="Reinicie pra aplicar a atualização."
-          onDismiss={() => setDismissed(true)}
+          onDismiss={handleDismiss}
           action={
             <button
               onClick={() => window.electron?.installUpdate()}
@@ -85,7 +133,7 @@ export function UpdateBanner() {
           accent="text-danger"
           title="Erro ao verificar atualização"
           desc={status.message}
-          onDismiss={() => setDismissed(true)}
+          onDismiss={handleDismiss}
         />
       )}
     </div>
