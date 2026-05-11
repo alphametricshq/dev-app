@@ -7,6 +7,7 @@ type UpdateInfo = {
 
 const isOverlay = process.argv.includes("--pomodoro-overlay");
 const isQuickCapture = process.argv.includes("--quick-capture");
+const isQuickTask = process.argv.includes("--quick-task");
 
 contextBridge.exposeInMainWorld("electron", {
   // Detecta se está rodando em Electron (no browser puro window.electron seria undefined)
@@ -14,6 +15,7 @@ contextBridge.exposeInMainWorld("electron", {
   // Marca quando essa janela é o overlay (vs main)
   isOverlay,
   isQuickCapture,
+  isQuickTask,
 
   onUpdateAvailable(callback: (info: UpdateInfo) => void) {
     const listener = (_e: unknown, info: UpdateInfo) => callback(info);
@@ -89,5 +91,13 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeQuickCapture() {
     ipcRenderer.send("quick-capture-close");
+  },
+
+  // ==== Quick task ====
+  openQuickTask() {
+    ipcRenderer.send("quick-task-open");
+  },
+  closeQuickTask() {
+    ipcRenderer.send("quick-task-close");
   },
 });
