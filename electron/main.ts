@@ -14,6 +14,7 @@ app.commandLine.appendSwitch("disable-features", "Translate");
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let quickCaptureWindow: BrowserWindow | null = null;
+let quickTaskWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
@@ -221,12 +222,78 @@ function setupQuickCaptureIpc() {
   });
 }
 
+function createQuickTaskWindow() {
+  if (quickTaskWindow && !quickTaskWindow.isDestroyed()) {
+    quickTaskWindow.show();
+    quickTaskWindow.focus();
+    return;
+  }
+  const primary = screen.getPrimaryDisplay();
+  const { width: screenW, height: screenH } = primary.workAreaSize;
+  const winW = 520;
+  const winH = 280;
+  const x = Math.round((screenW - winW) / 2);
+  const y = Math.round((screenH - winH) / 3);
+
+  quickTaskWindow = new BrowserWindow({
+    width: winW,
+    height: winH,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    backgroundColor: "#00000000",
+    hasShadow: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
+      additionalArguments: ["--quick-task"],
+    },
+  });
+
+  quickTaskWindow.on("closed", () => {
+    quickTaskWindow = null;
+  });
+
+  quickTaskWindow.webContents.on("before-input-event", (_e, input) => {
+    if (input.key === "Escape" && quickTaskWindow) {
+      quickTaskWindow.close();
+    }
+  });
+
+  quickTaskWindow.loadURL(`${serverUrl}/quick-task`).then(() => {
+    quickTaskWindow?.show();
+    quickTaskWindow?.focus();
+  });
+}
+
+function setupQuickTaskIpc() {
+  ipcMain.on("quick-task-open", () => {
+    createQuickTaskWindow();
+  });
+  ipcMain.on("quick-task-close", () => {
+    if (quickTaskWindow && !quickTaskWindow.isDestroyed()) quickTaskWindow.close();
+  });
+}
+
 function setupGlobalShortcuts() {
-  // Ctrl+Shift+J = quick capture
-  const ok = globalShortcut.register("CommandOrControl+Shift+J", () => {
+  // Ctrl+Shift+J = quick capture journal
+  const okJournal = globalShortcut.register("CommandOrControl+Shift+J", () => {
     createQuickCaptureWindow();
   });
-  if (!ok) console.warn("[shortcuts] não registrou Ctrl+Shift+J");
+  if (!okJournal) console.warn("[shortcuts] não registrou Ctrl+Shift+J");
+
+  // Ctrl+Shift+T = quick task
+  const okTask = globalShortcut.register("CommandOrControl+Shift+T", () => {
+    createQuickTaskWindow();
+  });
+  if (!okTask) console.warn("[shortcuts] não registrou Ctrl+Shift+T");
 }
 
 function setupPomodoroOverlayIpc() {
@@ -343,6 +410,7 @@ app.whenReady().then(async () => {
     setupAutoUpdater();
     setupPomodoroOverlayIpc();
     setupQuickCaptureIpc();
+    setupQuickTaskIpc();
     setupGlobalShortcuts();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
@@ -367,6 +435,7 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
   if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.destroy();
+  if (quickTaskWindow && !quickTaskWindow.isDestroyed()) quickTaskWindow.destroy();
   if (serverProcess && !serverProcess.killed) serverProcess.kill();
 });
 
