@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off, Maximize2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off, Maximize2, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   start,
@@ -25,12 +25,28 @@ const TYPE_COLORS: Record<SessionType, { bg: string; text: string }> = {
   long_break: { bg: "bg-warning", text: "text-warning" },
 };
 
+type ElectronAPI = {
+  isElectron?: boolean;
+  openPomodoroOverlay?: () => void;
+};
+
 export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => void }) {
   const state = usePomodoroState();
   const remaining = useRemainingSeconds();
   const progress = useProgressPct();
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [deepFocus, setDeepFocus] = useState(false);
+  const [isElectron, setIsElectron] = useState(false);
+
+  useEffect(() => {
+    const api = (window as unknown as { electron?: ElectronAPI }).electron;
+    if (api?.isElectron) setIsElectron(true);
+  }, []);
+
+  function openOverlay() {
+    const api = (window as unknown as { electron?: ElectronAPI }).electron;
+    api?.openPomodoroOverlay?.();
+  }
 
   if (!state) return null;
 
@@ -69,15 +85,27 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
 
   return (
     <div className="card relative flex flex-col items-center gap-6 py-10">
-      {/* Botão modo foco profundo (canto sup. direito) */}
-      <button
-        onClick={() => setDeepFocus(true)}
-        className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-accent hover:text-accent"
-        title="Modo foco profundo"
-      >
-        <Maximize2 className="h-3 w-3" />
-        Foco profundo
-      </button>
+      {/* Botões no canto superior direito */}
+      <div className="absolute right-4 top-4 flex items-center gap-1.5">
+        {isElectron && (
+          <button
+            onClick={openOverlay}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-accent hover:text-accent"
+            title="Fixar no topo da tela (overlay always-on-top)"
+          >
+            <Pin className="h-3 w-3" />
+            Fixar no topo
+          </button>
+        )}
+        <button
+          onClick={() => setDeepFocus(true)}
+          className="flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-accent hover:text-accent"
+          title="Modo foco profundo"
+        >
+          <Maximize2 className="h-3 w-3" />
+          Foco profundo
+        </button>
+      </div>
       {/* Tipo selector */}
       <div className="flex gap-1 rounded-full border border-border bg-bg-subtle p-1">
         {(Object.keys(PomodoroLabels) as SessionType[]).map((t) => (
