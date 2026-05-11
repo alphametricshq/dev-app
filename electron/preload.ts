@@ -6,12 +6,14 @@ type UpdateInfo = {
 };
 
 const isOverlay = process.argv.includes("--pomodoro-overlay");
+const isQuickCapture = process.argv.includes("--quick-capture");
 
 contextBridge.exposeInMainWorld("electron", {
   // Detecta se está rodando em Electron (no browser puro window.electron seria undefined)
   isElectron: true,
   // Marca quando essa janela é o overlay (vs main)
   isOverlay,
+  isQuickCapture,
 
   onUpdateAvailable(callback: (info: UpdateInfo) => void) {
     const listener = (_e: unknown, info: UpdateInfo) => callback(info);
@@ -79,5 +81,13 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_e: unknown, action: string) => cb(action);
     ipcRenderer.on("pomodoro-control", listener);
     return () => ipcRenderer.removeListener("pomodoro-control", listener);
+  },
+
+  // ==== Quick capture ====
+  openQuickCapture() {
+    ipcRenderer.send("quick-capture-open");
+  },
+  closeQuickCapture() {
+    ipcRenderer.send("quick-capture-close");
   },
 });
