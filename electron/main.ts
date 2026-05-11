@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu, ipcMain, screen } from "electron";
+import { app, BrowserWindow, shell, Menu, ipcMain, screen, globalShortcut } from "electron";
 import { autoUpdater } from "electron-updater";
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
@@ -13,6 +13,7 @@ app.commandLine.appendSwitch("disable-features", "Translate");
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
+let quickCaptureWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
@@ -159,6 +160,75 @@ function createOverlayWindow() {
   });
 }
 
+function createQuickCaptureWindow() {
+  if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) {
+    quickCaptureWindow.show();
+    quickCaptureWindow.focus();
+    return;
+  }
+  const primary = screen.getPrimaryDisplay();
+  const { width: screenW, height: screenH } = primary.workAreaSize;
+  const winW = 520;
+  const winH = 340;
+  const x = Math.round((screenW - winW) / 2);
+  const y = Math.round((screenH - winH) / 3);
+
+  quickCaptureWindow = new BrowserWindow({
+    width: winW,
+    height: winH,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    backgroundColor: "#00000000",
+    hasShadow: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
+      additionalArguments: ["--quick-capture"],
+    },
+  });
+
+  quickCaptureWindow.on("closed", () => {
+    quickCaptureWindow = null;
+  });
+
+  // Esc nativo fecha (sem precisar IPC)
+  quickCaptureWindow.webContents.on("before-input-event", (_e, input) => {
+    if (input.key === "Escape" && quickCaptureWindow) {
+      quickCaptureWindow.close();
+    }
+  });
+
+  quickCaptureWindow.loadURL(`${serverUrl}/quick-capture`).then(() => {
+    quickCaptureWindow?.show();
+    quickCaptureWindow?.focus();
+  });
+}
+
+function setupQuickCaptureIpc() {
+  ipcMain.on("quick-capture-open", () => {
+    createQuickCaptureWindow();
+  });
+  ipcMain.on("quick-capture-close", () => {
+    if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.close();
+  });
+}
+
+function setupGlobalShortcuts() {
+  // Ctrl+Shift+J = quick capture
+  const ok = globalShortcut.register("CommandOrControl+Shift+J", () => {
+    createQuickCaptureWindow();
+  });
+  if (!ok) console.warn("[shortcuts] não registrou Ctrl+Shift+J");
+}
+
 function setupPomodoroOverlayIpc() {
   ipcMain.on("pomodoro-overlay-open", () => {
     createOverlayWindow();
@@ -272,6 +342,8 @@ app.whenReady().then(async () => {
     await createWindow();
     setupAutoUpdater();
     setupPomodoroOverlayIpc();
+    setupQuickCaptureIpc();
+    setupGlobalShortcuts();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
     const msg = e instanceof Error ? e.message : String(e);
@@ -294,5 +366,10 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
+  if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.destroy();
   if (serverProcess && !serverProcess.killed) serverProcess.kill();
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });
