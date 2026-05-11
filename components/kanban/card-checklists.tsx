@@ -11,6 +11,7 @@ export function CardChecklists({ cardId }: { cardId: string }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [autoFocusItemForId, setAutoFocusItemForId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -46,6 +47,8 @@ export function CardChecklists({ cardId }: { cardId: string }) {
       });
       const d = await r.json();
       if (!d?.ok) throw new Error(d?.error);
+      // Marca o id da checklist nova pra abrir o input de item automaticamente
+      if (d.checklist?.id) setAutoFocusItemForId(d.checklist.id);
       await refresh();
     } catch (e) {
       toast.error("Erro", e instanceof Error ? e.message : "Erro desconhecido");
@@ -156,30 +159,35 @@ export function CardChecklists({ cardId }: { cardId: string }) {
             className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <Plus className="h-3 w-3" />
-            Adicionar
+            Nova checklist
           </button>
         )}
       </div>
 
       {adding && (
-        <div className="flex gap-2 rounded-lg border border-accent/40 bg-accent/5 p-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            autoFocus
-            placeholder="Nome do checklist"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddChecklist();
-              if (e.key === "Escape") {
-                setAdding(false);
-                setDraft("");
-              }
-            }}
-            className="input flex-1 text-xs"
-          />
-          <button onClick={handleAddChecklist} className="btn-primary py-1.5 text-xs">
-            OK
-          </button>
+        <div className="space-y-1.5 rounded-lg border border-accent/40 bg-accent/5 p-2">
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+              placeholder='Nome do grupo (ex: "Tasks", "Roadmap"...)'
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddChecklist();
+                if (e.key === "Escape") {
+                  setAdding(false);
+                  setDraft("");
+                }
+              }}
+              className="input flex-1 text-xs"
+            />
+            <button onClick={handleAddChecklist} className="btn-primary py-1.5 text-xs">
+              Criar
+            </button>
+          </div>
+          <p className="text-[10px] text-fg-subtle">
+            Você cria um grupo aqui, depois adiciona os itens marcáveis dentro dele.
+          </p>
         </div>
       )}
 
@@ -198,6 +206,8 @@ export function CardChecklists({ cardId }: { cardId: string }) {
             done={done}
             total={total}
             pct={pct}
+            startAddingItem={autoFocusItemForId === cl.id}
+            onStartedAddingItem={() => setAutoFocusItemForId(null)}
             onAddItem={(name) => handleAddItem(cl.id, name)}
             onToggleItem={(item) => handleToggleItem(cl, item)}
             onDeleteItem={(itemId) => handleDeleteItem(cl.id, itemId)}
@@ -214,6 +224,8 @@ function ChecklistBlock({
   done,
   total,
   pct,
+  startAddingItem,
+  onStartedAddingItem,
   onAddItem,
   onToggleItem,
   onDeleteItem,
@@ -223,6 +235,8 @@ function ChecklistBlock({
   done: number;
   total: number;
   pct: number;
+  startAddingItem?: boolean;
+  onStartedAddingItem?: () => void;
   onAddItem: (name: string) => void;
   onToggleItem: (item: TrelloCheckItem) => void;
   onDeleteItem: (itemId: string) => void;
@@ -231,13 +245,27 @@ function ChecklistBlock({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
 
+  // Quando o pai indica que essa checklist foi recém-criada, já abre o input
+  useEffect(() => {
+    if (startAddingItem) {
+      setAdding(true);
+      onStartedAddingItem?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAddingItem]);
+
   function commit() {
-    if (draft.trim()) onAddItem(draft.trim());
-    setDraft("");
-    setAdding(false);
+    if (draft.trim()) {
+      onAddItem(draft.trim());
+      setDraft("");
+      // Mantém o input aberto pra adicionar mais itens em sequência
+    } else {
+      setAdding(false);
+    }
   }
 
   const items = [...checklist.checkItems].sort((a, b) => a.pos - b.pos);
+  const isEmpty = items.length === 0;
 
   return (
     <div className="rounded-lg border border-border bg-bg-subtle p-3">
@@ -297,32 +325,53 @@ function ChecklistBlock({
       </ul>
 
       {adding ? (
-        <div className="mt-2 flex gap-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            autoFocus
-            placeholder="Novo item"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") {
+        <div className="mt-2 space-y-1">
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+              placeholder="Novo item (Enter pra adicionar e continuar)"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit();
+                if (e.key === "Escape") {
+                  setAdding(false);
+                  setDraft("");
+                }
+              }}
+              className="input flex-1 text-xs"
+            />
+            <button onClick={commit} className="btn-primary py-1.5 text-xs">
+              +
+            </button>
+            <button
+              onClick={() => {
                 setAdding(false);
                 setDraft("");
-              }
-            }}
-            className="input flex-1 text-xs"
-          />
-          <button onClick={commit} className="btn-primary py-1.5 text-xs">
-            +
-          </button>
+              }}
+              className="text-[11px] text-fg-muted hover:text-fg"
+            >
+              fim
+            </button>
+          </div>
+          {isEmpty && (
+            <p className="text-[10px] text-fg-subtle">
+              Cada linha vira um item marcável. Enter adiciona e mantém o campo aberto.
+            </p>
+          )}
         </div>
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="mt-2 flex items-center gap-1 text-xs text-fg-muted hover:text-fg"
+          className={cn(
+            "mt-2 flex items-center gap-1 text-xs",
+            isEmpty
+              ? "rounded border border-dashed border-accent/40 px-2 py-1 text-accent hover:bg-accent/10"
+              : "text-fg-muted hover:text-fg",
+          )}
         >
           <Plus className="h-3 w-3" />
-          Adicionar item
+          {isEmpty ? "Adicionar primeiro item" : "Adicionar item"}
         </button>
       )}
     </div>
