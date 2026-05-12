@@ -100,4 +100,9 @@ contextBridge.exposeInMainWorld("electron", {
   closeQuickTask() {
     ipcRenderer.send("quick-task-close");
   },
+
+  // ==== Tray ====
+  updateTrayStatus(text: string) {
+    ipcRenderer.send("tray-update-status", text);
+  },
 });

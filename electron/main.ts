@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu, ipcMain, screen, globalShortcut } from "electron";
+import { app, BrowserWindow, shell, Menu, ipcMain, screen, globalShortcut, Tray, nativeImage } from "electron";
 import { autoUpdater } from "electron-updater";
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
@@ -15,6 +15,8 @@ let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let quickCaptureWindow: BrowserWindow | null = null;
 let quickTaskWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let isQuitting = false;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
@@ -282,6 +284,59 @@ function setupQuickTaskIpc() {
   });
 }
 
+function createTray() {
+  if (tray) return;
+  const iconPath = path.join(__dirname, "..", "dashboard.ico");
+  const icon = nativeImage.createFromPath(iconPath);
+  tray = new Tray(icon);
+  tray.setToolTip("Dashboard Pessoal");
+
+  const ctxMenu = Menu.buildFromTemplate([
+    {
+      label: "Abrir Dashboard",
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Nova task (Ctrl+Shift+T)",
+      click: () => createQuickTaskWindow(),
+    },
+    {
+      label: "Nova nota (Ctrl+Shift+J)",
+      click: () => createQuickCaptureWindow(),
+    },
+    { type: "separator" },
+    {
+      label: "Sair",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setContextMenu(ctxMenu);
+  tray.on("click", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isVisible() && mainWindow.isFocused()) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+function setupTrayIpc() {
+  ipcMain.on("tray-update-status", (_e, text: string) => {
+    if (tray) tray.setToolTip(text || "Dashboard Pessoal");
+  });
+}
+
 function setupGlobalShortcuts() {
   // Ctrl+Shift+J = quick capture journal
   const okJournal = globalShortcut.register("CommandOrControl+Shift+J", () => {
@@ -403,6 +458,14 @@ async function createWindow() {
     mainWindow = null;
   });
 
+  // Fechar janela esconde pra tray (a menos que o user esteja realmente saindo)
+  mainWindow.on("close", (e) => {
+    if (!isQuitting && mainWindow) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   await mainWindow.loadURL(serverUrl);
 }
 
@@ -412,6 +475,8 @@ app.whenReady().then(async () => {
       serverUrl = await startNextServer();
     }
     await createWindow();
+    createTray();
+    setupTrayIpc();
     setupAutoUpdater();
     setupPomodoroOverlayIpc();
     setupQuickCaptureIpc();
@@ -433,14 +498,21 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+  // No Windows com tray, NÃO quita ao fechar todas as janelas — só quando isQuitting
+  if (!isQuitting) return;
   if (serverProcess && !serverProcess.killed) serverProcess.kill();
   app.quit();
 });
 
 app.on("before-quit", () => {
+  isQuitting = true;
   if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
   if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.destroy();
   if (quickTaskWindow && !quickTaskWindow.isDestroyed()) quickTaskWindow.destroy();
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
   if (serverProcess && !serverProcess.killed) serverProcess.kill();
 });
 
