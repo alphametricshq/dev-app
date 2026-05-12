@@ -337,18 +337,44 @@ function setupTrayIpc() {
   });
 }
 
-function setupGlobalShortcuts() {
-  // Ctrl+Shift+J = quick capture journal
-  const okJournal = globalShortcut.register("CommandOrControl+Shift+J", () => {
-    createQuickCaptureWindow();
-  });
-  if (!okJournal) console.warn("[shortcuts] não registrou Ctrl+Shift+J");
+type ShortcutsConfig = {
+  globalQuickCapture: string;
+  globalQuickTask: string;
+};
 
-  // Ctrl+Shift+T = quick task
-  const okTask = globalShortcut.register("CommandOrControl+Shift+T", () => {
-    createQuickTaskWindow();
+const DEFAULT_SHORTCUTS: ShortcutsConfig = {
+  globalQuickCapture: "CommandOrControl+Shift+J",
+  globalQuickTask: "CommandOrControl+Shift+T",
+};
+
+function registerGlobalShortcuts(cfg: ShortcutsConfig) {
+  globalShortcut.unregisterAll();
+  try {
+    const okJournal = globalShortcut.register(cfg.globalQuickCapture, () => {
+      createQuickCaptureWindow();
+    });
+    if (!okJournal) console.warn(`[shortcuts] falha em registrar ${cfg.globalQuickCapture}`);
+  } catch (e) {
+    console.warn(`[shortcuts] erro ${cfg.globalQuickCapture}:`, e);
+  }
+  try {
+    const okTask = globalShortcut.register(cfg.globalQuickTask, () => {
+      createQuickTaskWindow();
+    });
+    if (!okTask) console.warn(`[shortcuts] falha em registrar ${cfg.globalQuickTask}`);
+  } catch (e) {
+    console.warn(`[shortcuts] erro ${cfg.globalQuickTask}:`, e);
+  }
+}
+
+function setupGlobalShortcuts() {
+  registerGlobalShortcuts(DEFAULT_SHORTCUTS);
+  ipcMain.on("update-shortcuts", (_e, cfg: ShortcutsConfig) => {
+    registerGlobalShortcuts({
+      globalQuickCapture: cfg?.globalQuickCapture || DEFAULT_SHORTCUTS.globalQuickCapture,
+      globalQuickTask: cfg?.globalQuickTask || DEFAULT_SHORTCUTS.globalQuickTask,
+    });
   });
-  if (!okTask) console.warn("[shortcuts] não registrou Ctrl+Shift+T");
 }
 
 function setupPomodoroOverlayIpc() {

@@ -8,6 +8,7 @@ import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { ConfettiCanvas } from "@/components/confetti";
 import { DailyInsightTrigger } from "@/components/daily-insight-trigger";
 import { PomodoroElectronBridge } from "@/components/pomodoro/electron-bridge";
+import { ShortcutsElectronBridge } from "@/components/shortcuts-electron-bridge";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ConfettiCanvas />
       <DailyInsightTrigger />
       <PomodoroElectronBridge />
+      <ShortcutsElectronBridge />
     </div>
   );
 }
