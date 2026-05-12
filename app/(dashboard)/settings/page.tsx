@@ -5,6 +5,7 @@ import { BackupSection } from "@/components/backup-section";
 import { ThemePicker } from "@/components/theme-picker";
 import { SoundsToggle } from "@/components/sounds-toggle";
 import { DesktopNotificationsToggle } from "@/components/desktop-notifications-toggle";
+import { StreakWarningSettings } from "@/components/streak-warning-settings";
 import { ShortcutsEditor } from "@/components/shortcuts-editor";
 import { TemplatesManager } from "@/components/templates-manager";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
@@ -21,6 +22,7 @@ export default function SettingsPage() {
         <ThemePicker />
         <SoundsToggle />
         <DesktopNotificationsToggle />
+        <StreakWarningSettings />
         <ShortcutsEditor />
         <GoalsForm />
         <TemplatesManager />
