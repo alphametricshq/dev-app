@@ -265,6 +265,42 @@ export async function getHabitById(habitId: number): Promise<Habit | null> {
   };
 }
 
+export type HabitsCalendar = {
+  habits: { id: number; name: string; emoji: string; color: string }[];
+  // mapa: date ISO → set de habit_ids feitos no dia
+  logs: Record<string, number[]>;
+};
+
+export async function getHabitsCalendar(year: number, month: number): Promise<HabitsCalendar> {
+  await initDb();
+  const c = db();
+  // month: 1-12 → SQLite usa 01-12
+  const ym = `${year}-${String(month).padStart(2, "0")}`;
+  const habitsR = await c.execute(
+    `SELECT id, name, emoji, color FROM habits WHERE archived = 0 ORDER BY position, id`,
+  );
+  const habits = habitsR.rows.map((row) => ({
+    id: Number(row.id),
+    name: row.name as string,
+    emoji: row.emoji as string,
+    color: row.color as string,
+  }));
+  const logsR = await c.execute({
+    sql: `SELECT habit_id, date FROM habit_logs
+          WHERE date LIKE ?
+          ORDER BY date ASC, habit_id ASC`,
+    args: [`${ym}-%`],
+  });
+  const logs: Record<string, number[]> = {};
+  for (const row of logsR.rows) {
+    const date = row.date as string;
+    const habitId = Number(row.habit_id);
+    if (!logs[date]) logs[date] = [];
+    logs[date].push(habitId);
+  }
+  return { habits, logs };
+}
+
 export async function getHabitsCount(): Promise<{ active: number; total: number }> {
   await initDb();
   const c = db();
