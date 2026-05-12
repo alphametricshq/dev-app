@@ -3,6 +3,7 @@
 
 import { toast } from "@/lib/toast";
 import { playComplete, playBreak } from "@/lib/sounds";
+import { notifyPomodoroComplete } from "@/lib/desktop-notifications";
 
 export type SessionType = "focus" | "short_break" | "long_break";
 
@@ -233,14 +234,7 @@ export async function complete() {
         playBreak();
         toast.info("Pausa concluída", "Bora pro próximo foco?");
       }
-      // Notificação nativa
-      if (typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "granted") {
-          new Notification("Pomodoro completo!", {
-            body: `Sessão de ${TYPE_LABELS[completedType]} (${completedDuration}min) finalizada.`,
-          });
-        }
-      }
+      notifyPomodoroComplete(completedDuration, completedType);
     }
   } catch {
     toast.error("Erro ao registrar sessão");

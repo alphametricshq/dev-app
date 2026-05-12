@@ -4,6 +4,7 @@ import { GoalsForm } from "@/components/goals-form";
 import { BackupSection } from "@/components/backup-section";
 import { ThemePicker } from "@/components/theme-picker";
 import { SoundsToggle } from "@/components/sounds-toggle";
+import { DesktopNotificationsToggle } from "@/components/desktop-notifications-toggle";
 import { TemplatesManager } from "@/components/templates-manager";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
@@ -18,6 +19,7 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-3xl space-y-6 px-8 py-6">
         <ThemePicker />
         <SoundsToggle />
+        <DesktopNotificationsToggle />
         <GoalsForm />
         <TemplatesManager />
         <SettingsForm initialIntervalMin={autoSyncMin} />

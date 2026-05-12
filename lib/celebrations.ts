@@ -2,6 +2,7 @@
 
 import { toast } from "@/lib/toast";
 import { playGoal, playLevelUp } from "@/lib/sounds";
+import { notifyGoalCompleted, notifyLevelUp } from "@/lib/desktop-notifications";
 
 // Pub/sub pra burst de confete on-demand
 let burstListeners: ((trigger: number) => void)[] = [];
@@ -91,8 +92,16 @@ export function celebrate(opts: { title: string; description?: string; key: stri
   markCelebrated(opts.key);
   fireConfetti();
   // Som diferente pra level vs meta
-  if (opts.key.startsWith("level:")) playLevelUp();
-  else playGoal();
+  if (opts.key.startsWith("level:")) {
+    playLevelUp();
+    const m = opts.key.match(/^level:(\d+)/);
+    if (m) notifyLevelUp(Number(m[1]));
+  } else {
+    playGoal();
+    if (opts.key.startsWith("daily:")) notifyGoalCompleted("daily");
+    else if (opts.key.startsWith("weekly:")) notifyGoalCompleted("weekly");
+    else if (opts.key.startsWith("monthly:")) notifyGoalCompleted("monthly");
+  }
   toast.success(opts.title, opts.description, 6000);
   return true;
 }
