@@ -16,9 +16,11 @@ export async function GET(req: Request) {
     const tag = url.searchParams.get("tag") ?? undefined;
     const fromDate = url.searchParams.get("from") ?? undefined;
     const toDate = url.searchParams.get("to") ?? undefined;
+    const limitRaw = url.searchParams.get("limit");
+    const limit = limitRaw ? Math.max(1, Math.min(10000, Number(limitRaw))) : 200;
 
     const [entries, tags, stats] = await Promise.all([
-      listJournalEntries({ query, tag, fromDate, toDate, limit: 200 }),
+      listJournalEntries({ query, tag, fromDate, toDate, limit }),
       getAllJournalTags(),
       getJournalStats(),
     ]);
