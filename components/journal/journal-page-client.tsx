@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Search, Loader2, BookOpen, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Search, Loader2, BookOpen, X, Download } from "lucide-react";
 import { EntryEditor } from "./entry-editor";
 import { EntryCard } from "./entry-card";
 import { JournalStatsSidebar } from "./journal-stats-sidebar";
 import { toast } from "@/lib/toast";
+import { entriesToMarkdown, downloadMarkdown, isoDateShort } from "@/lib/journal-export";
 import type { JournalEntry, JournalStats } from "@/lib/db/journal-queries";
 
 export function JournalPageClient() {
@@ -14,6 +15,60 @@ export function JournalPageClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    if (exportMenuOpen) document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [exportMenuOpen]);
+
+  async function fetchAll(): Promise<JournalEntry[]> {
+    const res = await fetch("/api/journal?limit=10000");
+    const data = await res.json();
+    if (!data?.ok) throw new Error(data?.error ?? "Falha ao buscar");
+    return data.entries as JournalEntry[];
+  }
+
+  async function handleExport(scope: "filtered" | "all" | "30d" | "90d") {
+    setExportMenuOpen(false);
+    try {
+      let payload: JournalEntry[];
+      let subtitle = "";
+      if (scope === "filtered") {
+        payload = entries;
+        const parts: string[] = [];
+        if (search.trim()) parts.push(`busca: "${search.trim()}"`);
+        if (activeTag) parts.push(`tag: #${activeTag}`);
+        subtitle = parts.length > 0 ? `Filtrado por ${parts.join(", ")}` : "Sem filtro";
+      } else if (scope === "all") {
+        payload = await fetchAll();
+        subtitle = "Todas as entradas";
+      } else {
+        const all = await fetchAll();
+        const days = scope === "30d" ? 30 : 90;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        const cutoffIso = cutoff.toISOString().slice(0, 10);
+        payload = all.filter((e) => e.created_at >= cutoffIso);
+        subtitle = `Últimos ${days} dias`;
+      }
+      if (payload.length === 0) {
+        toast.info("Nada pra exportar", "Nenhuma entrada nesse escopo");
+        return;
+      }
+      const md = entriesToMarkdown(payload, { title: "Journal", subtitle });
+      downloadMarkdown(`journal-${isoDateShort()}.md`, md);
+      toast.success("Exportado", `${payload.length} entrada${payload.length === 1 ? "" : "s"} em markdown`);
+    } catch (e) {
+      toast.error("Erro ao exportar", e instanceof Error ? e.message : String(e));
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -95,22 +150,64 @@ export function JournalPageClient() {
       <div className="space-y-5">
         <EntryEditor onSubmit={handleCreate} submitLabel="Adicionar" autoFocus />
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar nas suas notas..."
-            className="input pl-9"
-          />
-          {search && (
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar nas suas notas..."
+              className="input pl-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div ref={exportMenuRef} className="relative">
             <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
+              onClick={() => setExportMenuOpen((o) => !o)}
+              className="btn-secondary py-1.5 text-xs"
+              title="Exportar entradas em markdown"
             >
-              <X className="h-3.5 w-3.5" />
+              <Download className="h-3.5 w-3.5" />
+              Exportar
             </button>
-          )}
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl">
+                <button
+                  onClick={() => handleExport("filtered")}
+                  className="block w-full px-3 py-2 text-left text-xs text-fg-muted hover:bg-bg-hover hover:text-fg"
+                  disabled={loading || entries.length === 0}
+                >
+                  Filtradas atuais{" "}
+                  <span className="text-fg-subtle">({entries.length})</span>
+                </button>
+                <button
+                  onClick={() => handleExport("30d")}
+                  className="block w-full px-3 py-2 text-left text-xs text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  Últimos 30 dias
+                </button>
+                <button
+                  onClick={() => handleExport("90d")}
+                  className="block w-full px-3 py-2 text-left text-xs text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  Últimos 90 dias
+                </button>
+                <button
+                  onClick={() => handleExport("all")}
+                  className="block w-full border-t border-border px-3 py-2 text-left text-xs text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  Tudo
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {activeTag && (
