@@ -3,6 +3,7 @@ import { LevelCard } from "@/components/gamification/level-card";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
 import { GoalForecastList } from "@/components/gamification/goal-forecast-card";
 import { XpHistoryChart } from "@/components/gamification/xp-history-chart";
+import { PatternsCard } from "@/components/gamification/patterns-card";
 import { getGamificationSummary } from "@/lib/gamification";
 import { computeXpHistory } from "@/lib/gamification/xp-history";
 import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
@@ -44,6 +45,8 @@ export default async function ConquistasPage() {
         </div>
 
         <XpHistoryChart history={xpHistory} />
+
+        <PatternsCard />
 
         <section>
           <header className="mb-3 flex items-center gap-2">

@@ -119,6 +119,34 @@ export async function listPomodoroSessions(limit = 20): Promise<PomodoroSession[
   }));
 }
 
+export async function getPomodoroByHour(days: number): Promise<{ hour: number; count: number }[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT CAST(strftime('%H', finished_at) AS INTEGER) AS hour, COUNT(*) AS count
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND type = 'focus' AND finished_at >= datetime('now', ?)
+          GROUP BY hour
+          ORDER BY hour ASC`,
+    args: [`-${days} days`],
+  });
+  return r.rows.map((row) => ({ hour: Number(row.hour), count: Number(row.count) }));
+}
+
+export async function getPomodoroByWeekday(days: number): Promise<{ weekday: number; count: number }[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT CAST(strftime('%w', finished_at) AS INTEGER) AS weekday, COUNT(*) AS count
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND type = 'focus' AND finished_at >= datetime('now', ?)
+          GROUP BY weekday
+          ORDER BY weekday ASC`,
+    args: [`-${days} days`],
+  });
+  return r.rows.map((row) => ({ weekday: Number(row.weekday), count: Number(row.count) }));
+}
+
 export async function getPomodoroByDay(days: number): Promise<{ date: string; count: number }[]> {
   await initDb();
   const c = db();
