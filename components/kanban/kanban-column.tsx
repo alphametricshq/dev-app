@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, MoreVertical, Archive, Pencil } from "lucide-react";
+import { Plus, MoreVertical, Archive, Pencil, Bookmark } from "lucide-react";
 import { KanbanCard } from "./kanban-card";
 import type { TrelloListItem, TrelloCardItem } from "@/lib/integrations/trello-api";
+import type { Template, CardTemplateData } from "@/lib/db/templates-queries";
 import { cn } from "@/lib/utils";
 
 export function KanbanColumn({
@@ -14,6 +15,7 @@ export function KanbanColumn({
   pinnedIds,
   pomodoroCounts,
   onAddCard,
+  onApplyTemplate,
   onOpenCard,
   onDeleteCard,
   onTogglePinCard,
@@ -25,6 +27,7 @@ export function KanbanColumn({
   pinnedIds: Set<string>;
   pomodoroCounts: Record<string, { count: number; minutes: number }>;
   onAddCard: (listId: string, name: string) => void;
+  onApplyTemplate?: (listId: string, template: Template<CardTemplateData>) => Promise<void>;
   onOpenCard: (card: TrelloCardItem) => void;
   onDeleteCard: (cardId: string) => void;
   onTogglePinCard: (card: TrelloCardItem, currentlyPinned: boolean) => void;
@@ -38,6 +41,7 @@ export function KanbanColumn({
 
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [templates, setTemplates] = useState<Template<CardTemplateData>[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [editingTitle, setEditingTitle] = useState(false);
@@ -49,7 +53,15 @@ export function KanbanColumn({
 
   useEffect(() => {
     if (adding && inputRef.current) inputRef.current.focus();
-  }, [adding]);
+    if (adding && templates.length === 0) {
+      fetch("/api/templates?type=card")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.ok) setTemplates(d.templates ?? []);
+        })
+        .catch(() => {});
+    }
+  }, [adding, templates.length]);
 
   useEffect(() => {
     if (editingTitle && titleRef.current) {
@@ -167,6 +179,25 @@ export function KanbanColumn({
 
         {adding ? (
           <div className="space-y-2">
+            {templates.length > 0 && onApplyTemplate && (
+              <div className="flex flex-wrap gap-1">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={async () => {
+                      await onApplyTemplate(list.id, t);
+                      setAdding(false);
+                      setDraft("");
+                    }}
+                    className="flex items-center gap-1 rounded-full border border-accent/30 bg-accent/5 px-2 py-0.5 text-[10px] text-accent hover:bg-accent/15"
+                    title={`Aplicar template "${t.name}"`}
+                  >
+                    <Bookmark className="h-2.5 w-2.5" />
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               ref={inputRef}
               value={draft}

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Trash2, ExternalLink, AlignLeft, Star, Brain, Tag } from "lucide-react";
+import { X, Trash2, ExternalLink, AlignLeft, Star, Brain, Tag, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CardChecklists } from "./card-checklists";
 import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 import type { PomodoroSession } from "@/lib/db/pomodoro-queries";
 import { labelBg } from "@/lib/trello-labels";
+import { toast } from "@/lib/toast";
 
 export function CardModal({
   card,
@@ -59,6 +60,34 @@ export function CardModal({
       onSave({ name: trimmedName, desc });
     }
     onClose();
+  }
+
+  async function saveAsTemplate() {
+    const tplName = prompt("Nome do template:", card.name);
+    if (!tplName?.trim()) return;
+    try {
+      // Pega checklists atuais do card
+      const r = await fetch(`/api/trello/cards/${card.id}/checklists`);
+      const d = await r.json();
+      const checklists = (d?.checklists ?? []).map((cl: { name: string; checkItems: { name: string }[] }) => ({
+        name: cl.name,
+        items: cl.checkItems.map((i) => i.name),
+      }));
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "card",
+          name: tplName.trim(),
+          data: { name, desc, checklists },
+        }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+      toast.success("Template salvo", `"${tplName}" disponível pra novos cards`);
+    } catch (e) {
+      toast.error("Erro ao salvar template", e instanceof Error ? e.message : String(e));
+    }
   }
 
   function handleBackdrop(e: React.MouseEvent) {
@@ -207,6 +236,14 @@ export function CardModal({
                 Abrir no Trello
               </a>
             )}
+            <button
+              onClick={saveAsTemplate}
+              className="btn-secondary py-1.5 text-xs"
+              title="Salvar este card como template reutilizável"
+            >
+              <BookmarkPlus className="h-3.5 w-3.5" />
+              Salvar template
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button

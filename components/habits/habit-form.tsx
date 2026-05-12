@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Bookmark, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
+import type { Template, HabitTemplateData } from "@/lib/db/templates-queries";
+import { toast } from "@/lib/toast";
 
 const EMOJI_PRESETS = ["✨", "🏃", "📖", "💧", "🧘", "💪", "😴", "🍎", "🎵", "✍️", "💼", "🌱"];
 const COLOR_PRESETS: { id: string; class: string }[] = [
@@ -36,7 +38,47 @@ export function HabitForm({
   const [color, setColor] = useState(initial?.color ?? "accent");
   const [target, setTarget] = useState(initial?.target_per_week ?? 7);
   const [saving, setSaving] = useState(false);
+  const [templates, setTemplates] = useState<Template<HabitTemplateData>[]>([]);
   const isEdit = !!initial;
+
+  useEffect(() => {
+    if (isEdit) return;
+    fetch("/api/templates?type=habit")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.ok) setTemplates(d.templates ?? []);
+      })
+      .catch(() => {});
+  }, [isEdit]);
+
+  function applyTemplate(t: Template<HabitTemplateData>) {
+    setName(t.data.name || t.name);
+    if (t.data.emoji) setEmoji(t.data.emoji);
+    if (t.data.color) setColor(t.data.color);
+    if (typeof t.data.target_per_week === "number") setTarget(t.data.target_per_week);
+  }
+
+  async function saveAsTemplate() {
+    if (!name.trim()) return;
+    const tplName = prompt("Nome do template:", name);
+    if (!tplName?.trim()) return;
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "habit",
+          name: tplName.trim(),
+          data: { name: name.trim(), emoji, color, target_per_week: target },
+        }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+      toast.success("Template salvo", `"${tplName}" disponível pra novos hábitos`);
+    } catch (e) {
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -78,6 +120,27 @@ export function HabitForm({
         </div>
 
         <div className="space-y-4 px-5 py-4">
+          {!isEdit && templates.length > 0 && (
+            <div>
+              <label className="label flex items-center gap-1.5">
+                <Bookmark className="h-3 w-3" />
+                Templates salvos
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    className="rounded-full border border-accent/30 bg-accent/5 px-2 py-0.5 text-[11px] text-accent hover:bg-accent/15"
+                  >
+                    {t.data.emoji ?? "✨"} {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="label">Nome</label>
             <input
@@ -149,17 +212,28 @@ export function HabitForm({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border bg-bg-subtle/40 px-5 py-3">
-          <button onClick={onClose} className="btn-secondary py-1.5 text-xs">
-            Cancelar
-          </button>
+        <div className="flex items-center justify-between gap-2 border-t border-border bg-bg-subtle/40 px-5 py-3">
           <button
-            onClick={handleSave}
-            disabled={!name.trim() || saving}
-            className="btn-primary py-1.5 text-xs"
+            onClick={saveAsTemplate}
+            disabled={!name.trim()}
+            className="btn-secondary py-1.5 text-xs"
+            title="Salvar configuração como template"
           >
-            {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar hábito"}
+            <BookmarkPlus className="h-3 w-3" />
+            Salvar template
           </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-secondary py-1.5 text-xs">
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!name.trim() || saving}
+              className="btn-primary py-1.5 text-xs"
+            >
+              {saving ? "Salvando..." : isEdit ? "Salvar" : "Criar hábito"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
