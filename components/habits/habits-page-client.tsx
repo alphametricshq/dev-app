@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays } from "lucide-react";
 import { HabitCard } from "./habit-card";
 import { HabitForm, type HabitFormValues } from "./habit-form";
+import { HabitsCalendarView } from "./habits-calendar-view";
+import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
+
+type ViewMode = "cards" | "calendar";
 
 export function HabitsPageClient() {
   const [habits, setHabits] = useState<HabitWithStats[]>([]);
@@ -12,6 +16,7 @@ export function HabitsPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<HabitWithStats | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<ViewMode>("cards");
 
   useEffect(() => {
     refresh();
@@ -118,12 +123,34 @@ export function HabitsPageClient() {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-fg-muted">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex-1 text-sm text-fg-muted">
           {habits.length === 0
             ? "Nenhum hábito ainda. Crie o primeiro pra começar a tracker."
             : `${habits.length} hábito${habits.length === 1 ? "" : "s"} ativo${habits.length === 1 ? "" : "s"}`}
         </p>
+        <div className="flex gap-1 rounded-full border border-border bg-bg-subtle p-1">
+          <button
+            onClick={() => setView("cards")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              view === "cards" ? "bg-bg-card text-fg shadow-sm" : "text-fg-muted hover:text-fg",
+            )}
+          >
+            <LayoutGrid className="h-3 w-3" />
+            Cards
+          </button>
+          <button
+            onClick={() => setView("calendar")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              view === "calendar" ? "bg-bg-card text-fg shadow-sm" : "text-fg-muted hover:text-fg",
+            )}
+          >
+            <CalendarDays className="h-3 w-3" />
+            Calendário
+          </button>
+        </div>
         <button onClick={() => setCreating(true)} className="btn-primary py-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" />
           Novo hábito
@@ -144,6 +171,8 @@ export function HabitsPageClient() {
             Criar primeiro hábito
           </button>
         </div>
+      ) : view === "calendar" ? (
+        <HabitsCalendarView />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {habits.map((h) => (
