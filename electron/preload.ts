@@ -105,4 +105,9 @@ contextBridge.exposeInMainWorld("electron", {
   updateTrayStatus(text: string) {
     ipcRenderer.send("tray-update-status", text);
   },
+
+  // ==== Keyboard shortcuts ====
+  updateShortcuts(cfg: { globalQuickCapture: string; globalQuickTask: string }) {
+    ipcRenderer.send("update-shortcuts", cfg);
+  },
 });
