@@ -19,6 +19,7 @@ import { KanbanCard } from "./kanban-card";
 import { CardModal } from "./card-modal";
 import { toast } from "@/lib/toast";
 import type { TrelloBoardFull, TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
+import type { Template, CardTemplateData } from "@/lib/db/templates-queries";
 import { labelBg } from "@/lib/trello-labels";
 import { cn } from "@/lib/utils";
 
@@ -245,6 +246,49 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     }
   }
 
+  async function applyTemplate(listId: string, tpl: Template<CardTemplateData>) {
+    if (!board) return;
+    try {
+      const cardRes = await fetch("/api/trello/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idList: listId,
+          name: tpl.data.name || tpl.name,
+          desc: tpl.data.desc,
+        }),
+      });
+      const cardData = await cardRes.json();
+      if (!cardData?.ok) throw new Error(cardData?.error);
+      const newCard = cardData.card;
+
+      // Cria checklists e items em paralelo
+      const checklists = tpl.data.checklists ?? [];
+      for (const cl of checklists) {
+        const clRes = await fetch(`/api/trello/cards/${newCard.id}/checklists`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: cl.name }),
+        });
+        const clData = await clRes.json();
+        if (clData?.ok && cl.items?.length) {
+          for (const item of cl.items) {
+            await fetch(`/api/trello/checklists/${clData.checklist.id}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: item }),
+            });
+          }
+        }
+      }
+
+      toast.success("Card criado", `Template "${tpl.name}" aplicado`);
+      await refetch();
+    } catch (e) {
+      toast.error("Erro ao aplicar template", e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function updateCardDetails(cardId: string, input: { name?: string; desc?: string }) {
     if (!board) return;
     const before = board.cards.find((c) => c.id === cardId);
@@ -444,6 +488,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
                 pinnedIds={pinnedIds}
                 pomodoroCounts={pomodoroCounts}
                 onAddCard={addCard}
+                onApplyTemplate={applyTemplate}
                 onOpenCard={(c) => setOpenCardId(c.id)}
                 onDeleteCard={deleteCard}
                 onTogglePinCard={togglePinCard}

@@ -4,6 +4,7 @@ import { GoalsForm } from "@/components/goals-form";
 import { BackupSection } from "@/components/backup-section";
 import { ThemePicker } from "@/components/theme-picker";
 import { SoundsToggle } from "@/components/sounds-toggle";
+import { TemplatesManager } from "@/components/templates-manager";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default function SettingsPage() {
         <ThemePicker />
         <SoundsToggle />
         <GoalsForm />
+        <TemplatesManager />
         <SettingsForm initialIntervalMin={autoSyncMin} />
         <BackupSection />
       </div>
