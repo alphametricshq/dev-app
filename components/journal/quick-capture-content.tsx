@@ -8,9 +8,21 @@ type ElectronAPI = {
   closeQuickCapture?: () => void;
 };
 
+const DRAFT_KEY = "quick-capture-draft-v1";
+
 export function QuickCaptureContent() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/journal")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.ok && Array.isArray(d.tags)) setTags(d.tags);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -79,7 +91,14 @@ export function QuickCaptureContent() {
                 {error}
               </div>
             )}
-            <EntryEditor onSubmit={handleSubmit} submitLabel="Salvar" autoFocus />
+            <EntryEditor
+              onSubmit={handleSubmit}
+              submitLabel="Salvar"
+              autoFocus
+              availableTags={tags}
+              draftKey={DRAFT_KEY}
+              withPreview
+            />
           </>
         )}
       </div>

@@ -148,7 +148,13 @@ export function JournalPageClient() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
       <div className="space-y-5">
-        <EntryEditor onSubmit={handleCreate} submitLabel="Adicionar" autoFocus />
+        <EntryEditor
+        onSubmit={handleCreate}
+        submitLabel="Adicionar"
+        autoFocus
+        availableTags={stats?.tagCounts.map((t) => t.tag) ?? []}
+        draftKey="journal-draft-v1"
+      />
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">

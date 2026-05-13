@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Send, Tags, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, Tags, X, Eye, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { renderMarkdown } from "@/lib/markdown-simple";
 
 const MOODS = ["", "😀", "🙂", "😐", "😔", "😴", "🔥", "💡", "🎯"];
+
+type Draft = { content: string; tags: string[]; mood: string };
 
 export function EntryEditor({
   initialContent = "",
@@ -12,6 +15,9 @@ export function EntryEditor({
   initialMood = "",
   autoFocus = false,
   submitLabel = "Salvar",
+  availableTags = [],
+  draftKey,
+  withPreview = false,
   onSubmit,
   onCancel,
 }: {
@@ -20,6 +26,9 @@ export function EntryEditor({
   initialMood?: string;
   autoFocus?: boolean;
   submitLabel?: string;
+  availableTags?: string[];
+  draftKey?: string;
+  withPreview?: boolean;
   onSubmit: (data: { content: string; tags: string[]; mood: string }) => Promise<void> | void;
   onCancel?: () => void;
 }) {
@@ -28,14 +37,58 @@ export function EntryEditor({
   const [tagInput, setTagInput] = useState("");
   const [mood, setMood] = useState(initialMood);
   const [submitting, setSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(withPreview);
+  const [draftRestored, setDraftRestored] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Restaura rascunho ao montar
+  useEffect(() => {
+    if (!draftKey || typeof window === "undefined") return;
+    const raw = localStorage.getItem(draftKey);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw) as Draft;
+      if (d.content || (d.tags && d.tags.length > 0) || d.mood) {
+        setContent(d.content ?? "");
+        setTags(d.tags ?? []);
+        setMood(d.mood ?? "");
+        setDraftRestored(true);
+        setTimeout(() => setDraftRestored(false), 3000);
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Salva rascunho com debounce
+  useEffect(() => {
+    if (!draftKey || typeof window === "undefined") return;
+    const id = setTimeout(() => {
+      if (content || tags.length > 0 || mood) {
+        localStorage.setItem(draftKey, JSON.stringify({ content, tags, mood }));
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    }, 500);
+    return () => clearTimeout(id);
+  }, [content, tags, mood, draftKey]);
 
   useEffect(() => {
     if (autoFocus && ref.current) ref.current.focus();
   }, [autoFocus]);
 
-  function addTag() {
-    const t = tagInput.trim().toLowerCase().replace(/,/g, "");
+  // Sugestões de tags filtradas
+  const tagSuggestions = useMemo(() => {
+    const q = tagInput.trim().toLowerCase();
+    if (!q || availableTags.length === 0) return [];
+    return availableTags
+      .filter((t) => t.toLowerCase().includes(q) && !tags.includes(t))
+      .slice(0, 6);
+  }, [tagInput, availableTags, tags]);
+
+  function addTag(name?: string) {
+    const t = (name ?? tagInput).trim().toLowerCase().replace(/,/g, "");
     if (!t) return;
     if (!tags.includes(t)) setTags([...tags, t]);
     setTagInput("");
@@ -55,6 +108,9 @@ export function EntryEditor({
       setTags([]);
       setMood("");
       setTagInput("");
+      if (draftKey && typeof window !== "undefined") {
+        localStorage.removeItem(draftKey);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -62,20 +118,39 @@ export function EntryEditor({
 
   return (
     <div className="card space-y-3">
-      <textarea
-        ref={ref}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-            e.preventDefault();
-            handleSubmit();
-          }
-        }}
-        rows={3}
-        placeholder="O que tá na sua mente? (Ctrl+Enter pra salvar)"
-        className="w-full resize-none rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none"
-      />
+      {draftRestored && (
+        <div className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-[11px] text-accent">
+          Rascunho restaurado ✓
+        </div>
+      )}
+
+      <div className={cn("grid gap-3", showPreview ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+        <textarea
+          ref={ref}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          rows={showPreview ? 8 : 3}
+          placeholder="O que tá na sua mente? (Ctrl+Enter pra salvar, markdown ok)"
+          className="w-full resize-none rounded-lg border border-border bg-bg-subtle px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none"
+        />
+        {showPreview && (
+          <div
+            className="overflow-y-auto rounded-lg border border-border bg-bg-subtle/40 px-3 py-2.5 text-sm text-fg"
+            style={{ maxHeight: "240px" }}
+          >
+            <div
+              className="space-y-1.5"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+            />
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1">
@@ -97,7 +172,7 @@ export function EntryEditor({
           ))}
         </div>
 
-        <div className="ml-auto flex flex-1 items-center gap-2">
+        <div className="relative ml-auto flex flex-1 items-center gap-2">
           <Tags className="h-3.5 w-3.5 text-fg-muted" />
           <div className="flex flex-wrap items-center gap-1">
             {tags.map((t) => (
@@ -117,34 +192,75 @@ export function EntryEditor({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === ",") {
                   e.preventDefault();
-                  addTag();
+                  if (tagSuggestions.length > 0) addTag(tagSuggestions[0]);
+                  else addTag();
+                } else if (e.key === "Tab" && tagSuggestions.length > 0) {
+                  e.preventDefault();
+                  addTag(tagSuggestions[0]);
                 } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
                   removeTag(tags[tags.length - 1]);
                 }
               }}
-              onBlur={addTag}
+              onBlur={() => setTimeout(() => addTag(), 150)}
               placeholder="adicionar tag..."
               className="bg-transparent text-[11px] placeholder:text-fg-subtle focus:outline-none"
               size={12}
             />
           </div>
+          {tagSuggestions.length > 0 && tagInput && (
+            <div className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-0.5 rounded-lg border border-border bg-bg-card p-1 shadow-xl">
+              {tagSuggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    addTag(s);
+                  }}
+                  className="rounded px-2 py-1 text-left text-[11px] text-accent hover:bg-accent/15"
+                >
+                  #{s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2">
-        {onCancel && (
-          <button onClick={onCancel} className="text-xs text-fg-muted hover:text-fg">
-            Cancelar
-          </button>
-        )}
+      <div className="flex items-center justify-between gap-2">
         <button
-          onClick={handleSubmit}
-          disabled={!content.trim() || submitting}
-          className="btn-primary py-1.5 text-xs"
+          type="button"
+          onClick={() => setShowPreview((p) => !p)}
+          className="flex items-center gap-1 text-[11px] text-fg-muted hover:text-fg"
+          title="Alternar preview de markdown"
         >
-          <Send className="h-3.5 w-3.5" />
-          {submitting ? "Salvando..." : submitLabel}
+          {showPreview ? (
+            <>
+              <FileText className="h-3 w-3" />
+              Editar
+            </>
+          ) : (
+            <>
+              <Eye className="h-3 w-3" />
+              Preview
+            </>
+          )}
         </button>
+        <div className="flex items-center gap-2">
+          {onCancel && (
+            <button onClick={onCancel} className="text-xs text-fg-muted hover:text-fg">
+              Cancelar
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={!content.trim() || submitting}
+            className="btn-primary py-1.5 text-xs"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {submitting ? "Salvando..." : submitLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

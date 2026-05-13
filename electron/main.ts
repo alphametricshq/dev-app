@@ -171,8 +171,8 @@ function createQuickCaptureWindow() {
   }
   const primary = screen.getPrimaryDisplay();
   const { width: screenW, height: screenH } = primary.workAreaSize;
-  const winW = 520;
-  const winH = 340;
+  const winW = 760;
+  const winH = 460;
   const x = Math.round((screenW - winW) / 2);
   const y = Math.round((screenH - winH) / 3);
 
