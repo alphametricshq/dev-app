@@ -14,6 +14,7 @@ import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays } from "
 import { HabitCard } from "./habit-card";
 import { HabitForm, type HabitFormValues } from "./habit-form";
 import { HabitsCalendarView } from "./habits-calendar-view";
+import { HabitsWeeklyGoals } from "./weekly-goals-card";
 import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
 
@@ -208,7 +209,9 @@ export function HabitsPageClient() {
       ) : view === "calendar" ? (
         <HabitsCalendarView />
       ) : (
-        <DndContext
+        <>
+          <HabitsWeeklyGoals habits={habits} />
+          <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
@@ -227,6 +230,7 @@ export function HabitsPageClient() {
             </div>
           </SortableContext>
         </DndContext>
+        </>
       )}
 
       {creating && <HabitForm onClose={() => setCreating(false)} onSave={handleCreate} />}
