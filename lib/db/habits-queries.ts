@@ -106,6 +106,20 @@ export async function updateHabit(
   await c.execute({ sql: `UPDATE habits SET ${sets.join(", ")} WHERE id = ?`, args });
 }
 
+export async function reorderHabits(ids: number[]): Promise<void> {
+  await initDb();
+  const c = db();
+  // Atualiza position de cada hábito de acordo com a ordem
+  await Promise.all(
+    ids.map((id, idx) =>
+      c.execute({
+        sql: `UPDATE habits SET position = ? WHERE id = ?`,
+        args: [idx + 1, id],
+      }),
+    ),
+  );
+}
+
 export async function archiveHabit(id: number): Promise<void> {
   await initDb();
   const c = db();
