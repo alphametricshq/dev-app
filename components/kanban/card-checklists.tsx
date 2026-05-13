@@ -12,6 +12,7 @@ export function CardChecklists({ cardId }: { cardId: string }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [autoFocusItemForId, setAutoFocusItemForId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -55,11 +56,17 @@ export function CardChecklists({ cardId }: { cardId: string }) {
     }
   }
 
-  async function handleDeleteChecklist(id: string, name: string) {
-    if (!confirm(`Apagar checklist "${name}"?`)) return;
-    setChecklists((prev) => prev.filter((c) => c.id !== id));
+  function requestDeleteChecklist(id: string, name: string) {
+    setPendingDelete({ id, name });
+  }
+
+  async function confirmDeleteChecklist() {
+    const target = pendingDelete;
+    setPendingDelete(null);
+    if (!target) return;
+    setChecklists((prev) => prev.filter((c) => c.id !== target.id));
     try {
-      const r = await fetch(`/api/trello/checklists/${id}`, { method: "DELETE" });
+      const r = await fetch(`/api/trello/checklists/${target.id}`, { method: "DELETE" });
       const d = await r.json();
       if (!d?.ok) throw new Error(d?.error);
     } catch (e) {
@@ -134,6 +141,15 @@ export function CardChecklists({ cardId }: { cardId: string }) {
     } catch (e) {
       toast.error("Erro", e instanceof Error ? e.message : "Erro desconhecido");
       refresh();
+    }
+    // Garante que o foco volta pro modal (Electron pode perder após click em botão removido do DOM)
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        const active = document.activeElement as HTMLElement | null;
+        if (!active || active === document.body) {
+          (document.querySelector("[data-card-modal-body]") as HTMLElement | null)?.focus();
+        }
+      });
     }
   }
 
@@ -211,10 +227,69 @@ export function CardChecklists({ cardId }: { cardId: string }) {
             onAddItem={(name) => handleAddItem(cl.id, name)}
             onToggleItem={(item) => handleToggleItem(cl, item)}
             onDeleteItem={(itemId) => handleDeleteItem(cl.id, itemId)}
-            onDeleteChecklist={() => handleDeleteChecklist(cl.id, cl.name)}
+            onDeleteChecklist={() => requestDeleteChecklist(cl.id, cl.name)}
           />
         );
       })}
+
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          name={pendingDelete.name}
+          onConfirm={confirmDeleteChecklist}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({
+  name,
+  onConfirm,
+  onCancel,
+}: {
+  name: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onCancel();
+      } else if (e.key === "Enter") {
+        e.stopPropagation();
+        onConfirm();
+      }
+    }
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [onCancel, onConfirm]);
+
+  return (
+    <div
+      onClick={(e) => e.target === e.currentTarget && onCancel()}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+    >
+      <div className="w-full max-w-sm rounded-xl border border-border bg-bg-card p-4 shadow-2xl">
+        <h3 className="text-sm font-semibold text-fg">Apagar checklist?</h3>
+        <p className="mt-1 text-xs text-fg-muted">
+          &ldquo;{name}&rdquo; e todos os itens dentro serão apagados.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onCancel} className="btn-secondary py-1.5 text-xs">
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            autoFocus
+            className="btn flex items-center gap-1.5 border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs text-danger hover:bg-danger/20"
+          >
+            <Trash2 className="h-3 w-3" />
+            Apagar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

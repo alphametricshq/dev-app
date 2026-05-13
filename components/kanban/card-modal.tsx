@@ -127,7 +127,7 @@ export function CardModal({
           </button>
         </div>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="space-y-5 px-6 py-5" data-card-modal-body tabIndex={-1}>
           {card.labels && card.labels.length > 0 && (
             <div>
               <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
