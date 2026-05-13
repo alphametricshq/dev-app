@@ -42,14 +42,22 @@ export async function OverviewDashboard() {
   const combinedInsights = [...ghAnalytics.insights, ...trAnalytics.insights].slice(0, 5);
 
   const ghTotal = contribs.reduce((s, d) => s + d.count, 0);
-  const ghLast30 = contribs
-    .slice(-30)
-    .reduce((s, d) => s + d.count, 0);
+  const ghLast7Sum = sumLastDays(contribs, 0, 7);
+  const ghPrev7Sum = sumLastDays(contribs, 7, 14);
+  const ghLast30 = sumLastDays(contribs, 0, 30);
+  const ghPrev30 = sumLastDays(contribs, 30, 60);
   const taskTotal = byDay.reduce((s, d) => s + d.count, 0);
+  const taskLast30 = sumLastDays(byDay, 0, 30);
+  const taskPrev30 = sumLastDays(byDay, 30, 60);
   const streak = currentStreak(contribs);
+  const longestStreak = computeLongestStreak(contribs);
   const avgPerDay = taskTotal > 0 ? (taskTotal / 90).toFixed(1) : "0";
   const ghLast7 = contribs.slice(-7).map((d) => d.count);
   const taskLast7 = lastNDays(byDay, 7);
+
+  const ghLast7Trend = computeTrend(ghLast7Sum, ghPrev7Sum);
+  const ghLast30Trend = computeTrend(ghLast30, ghPrev30);
+  const taskTrend = computeTrend(taskLast30, taskPrev30);
 
   return (
     <div className="space-y-6">
@@ -60,33 +68,44 @@ export async function OverviewDashboard() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Contribuições GitHub"
-          value={ghTotal.toLocaleString("pt-BR")}
-          hint="último ano · 7 dias"
+          label="GitHub · 7 dias"
+          value={ghLast7Sum.toLocaleString("pt-BR")}
+          hint={`vs ${ghPrev7Sum.toLocaleString("pt-BR")} na semana anterior`}
           icon={GitCommit}
+          trend={ghLast7Trend}
           sparkline={ghLast7}
           accent="github"
         />
         <StatCard
-          label="Últimos 30 dias"
+          label="GitHub · 30 dias"
           value={ghLast30.toLocaleString("pt-BR")}
-          hint="contribuições"
+          hint={`${ghTotal.toLocaleString("pt-BR")} no ano todo`}
           icon={TrendingUp}
+          trend={ghLast30Trend}
           sparkline={ghLast7}
           accent="github"
         />
         <StatCard
-          label="Tarefas concluídas"
-          value={taskTotal.toLocaleString("pt-BR")}
+          label="Tarefas · 30 dias"
+          value={taskLast30.toLocaleString("pt-BR")}
           hint={`média ${avgPerDay}/dia · 90 dias`}
           icon={CheckSquare}
+          trend={taskTrend}
           sparkline={taskLast7}
           accent="trello"
         />
         <StatCard
           label="Streak atual"
           value={streak}
-          hint={streak === 1 ? "dia" : "dias seguidos"}
+          hint={
+            streak > 0 && streak === longestStreak
+              ? "novo recorde 🔥"
+              : longestStreak > 0
+                ? `recorde: ${longestStreak} dias`
+                : streak === 1
+                  ? "dia"
+                  : "dias seguidos"
+          }
           icon={Flame}
         />
       </div>
@@ -153,6 +172,49 @@ function lastNDays(data: { date: string; count: number }[], n: number): number[]
     result.push(map.get(iso) ?? 0);
   }
   return result;
+}
+
+function sumLastDays(
+  data: { date: string; count: number }[],
+  startOffset: number,
+  endOffsetExclusive: number,
+): number {
+  const map = new Map(data.map((d) => [d.date, d.count]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let total = 0;
+  for (let i = startOffset; i < endOffsetExclusive; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    total += map.get(iso) ?? 0;
+  }
+  return total;
+}
+
+function computeTrend(current: number, previous: number): { value: number; label: string } | undefined {
+  if (previous === 0) {
+    if (current === 0) return undefined;
+    return { value: 100, label: "vs anterior" };
+  }
+  const pct = ((current - previous) / previous) * 100;
+  return { value: Math.round(pct), label: "vs anterior" };
+}
+
+function computeLongestStreak(contribs: { date: string; count: number }[]): number {
+  if (contribs.length === 0) return 0;
+  const sorted = [...contribs].sort((a, b) => a.date.localeCompare(b.date));
+  let longest = 0;
+  let run = 0;
+  for (const c of sorted) {
+    if (c.count > 0) {
+      run++;
+      if (run > longest) longest = run;
+    } else {
+      run = 0;
+    }
+  }
+  return longest;
 }
 
 function currentStreak(contribs: { date: string; count: number }[]): number {
