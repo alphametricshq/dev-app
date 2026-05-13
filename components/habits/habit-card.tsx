@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, Archive, Flame, BarChart3 } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Check, Pencil, Archive, Flame, BarChart3, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
 import { HabitHistoryModal } from "./habit-history-modal";
@@ -31,13 +33,32 @@ export function HabitCard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const done = optimisticDone ?? habit.doneToday;
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: habit.id,
+  });
+
   return (
     <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
       className={cn(
-        "card relative flex flex-col gap-3 transition-colors",
+        "card group relative flex flex-col gap-3 transition-colors",
         done && `ring-1 ${colors.ring}`,
+        isDragging && "opacity-50 z-10",
       )}
     >
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-bg-hover hover:text-fg group-hover:opacity-100 active:cursor-grabbing"
+        aria-label="Arrastar"
+        title="Arrastar pra reordenar"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
       <div className="flex items-start justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bg-subtle text-2xl">

@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays } from "lucide-react";
 import { HabitCard } from "./habit-card";
 import { HabitForm, type HabitFormValues } from "./habit-form";
@@ -17,6 +26,8 @@ export function HabitsPageClient() {
   const [editing, setEditing] = useState<HabitWithStats | null>(null);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<ViewMode>("cards");
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     refresh();
@@ -69,6 +80,29 @@ export function HabitsPageClient() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       refresh();
+    }
+  }
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = habits.findIndex((h) => h.id === active.id);
+    const newIdx = habits.findIndex((h) => h.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const reordered = arrayMove(habits, oldIdx, newIdx);
+    const before = habits;
+    setHabits(reordered);
+    try {
+      const res = await fetch("/api/habits/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: reordered.map((h) => h.id) }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setHabits(before);
     }
   }
 
@@ -174,17 +208,25 @@ export function HabitsPageClient() {
       ) : view === "calendar" ? (
         <HabitsCalendarView />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {habits.map((h) => (
-            <HabitCard
-              key={h.id}
-              habit={h}
-              onToggleToday={handleToggle}
-              onEdit={(habit) => setEditing(habit)}
-              onArchive={handleArchive}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {habits.map((h) => (
+                <HabitCard
+                  key={h.id}
+                  habit={h}
+                  onToggleToday={handleToggle}
+                  onEdit={(habit) => setEditing(habit)}
+                  onArchive={handleArchive}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {creating && <HabitForm onClose={() => setCreating(false)} onSave={handleCreate} />}
