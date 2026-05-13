@@ -1,5 +1,6 @@
 import { Topbar } from "@/components/topbar";
 import { GithubHeatmap } from "@/components/dashboard/github-heatmap";
+import { GithubMonthlyCalendar } from "@/components/github/monthly-calendar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { WeekdayBars } from "@/components/analytics/weekday-bars";
@@ -34,6 +35,8 @@ export default async function GithubPage() {
         </div>
 
         <GithubHeatmap days={contribs} />
+
+        <GithubMonthlyCalendar days={contribs} />
 
         {/* ===== Análise de desempenho ===== */}
         <section className="space-y-4">
