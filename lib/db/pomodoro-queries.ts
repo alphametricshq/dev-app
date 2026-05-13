@@ -147,6 +147,113 @@ export async function getPomodoroByWeekday(days: number): Promise<{ weekday: num
   return r.rows.map((row) => ({ weekday: Number(row.weekday), count: Number(row.count) }));
 }
 
+export type FocusByDay = { date: string; focus_min: number; sessions: number };
+
+export async function getFocusMinutesByDay(days: number): Promise<FocusByDay[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT date(finished_at) AS date,
+                 COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min,
+                 SUM(CASE WHEN type='focus' THEN 1 ELSE 0 END) AS sessions
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND finished_at >= datetime('now', ?)
+          GROUP BY date(finished_at)
+          ORDER BY date ASC`,
+    args: [`-${days} days`],
+  });
+  return r.rows.map((row) => ({
+    date: row.date as string,
+    focus_min: Number(row.focus_min),
+    sessions: Number(row.sessions),
+  }));
+}
+
+export type TopCard = {
+  card_id: string;
+  card_name: string;
+  sessions: number;
+  focus_min: number;
+};
+
+export async function getTopFocusedCards(limit = 5, days = 90): Promise<TopCard[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT card_id, card_name,
+                 COUNT(*) AS sessions,
+                 SUM(duration_min) AS focus_min
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND type = 'focus'
+            AND card_id IS NOT NULL
+            AND finished_at >= datetime('now', ?)
+          GROUP BY card_id
+          ORDER BY focus_min DESC
+          LIMIT ?`,
+    args: [`-${days} days`, limit],
+  });
+  return r.rows.map((row) => ({
+    card_id: row.card_id as string,
+    card_name: (row.card_name as string) ?? "(sem nome)",
+    sessions: Number(row.sessions),
+    focus_min: Number(row.focus_min),
+  }));
+}
+
+export type WeekComparison = {
+  currentWeekMin: number;
+  previousWeekMin: number;
+  currentWeekSessions: number;
+  previousWeekSessions: number;
+  deltaPct: number | null;
+};
+
+export async function getWeekComparison(): Promise<WeekComparison> {
+  await initDb();
+  const c = db();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  const thisWeekStart = new Date(today);
+  thisWeekStart.setDate(today.getDate() - dayOfWeek);
+  const prevWeekStart = new Date(thisWeekStart);
+  prevWeekStart.setDate(thisWeekStart.getDate() - 7);
+  const isoDateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const cur = await c.execute({
+    sql: `SELECT
+            COUNT(*) AS sessions,
+            COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND date(finished_at) >= ?`,
+    args: [isoDateStr(thisWeekStart)],
+  });
+  const prev = await c.execute({
+    sql: `SELECT
+            COUNT(*) AS sessions,
+            COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
+          FROM pomodoro_sessions
+          WHERE completed = 1 AND date(finished_at) >= ? AND date(finished_at) < ?`,
+    args: [isoDateStr(prevWeekStart), isoDateStr(thisWeekStart)],
+  });
+  const currentWeekMin = Number(cur.rows[0]?.focus_min ?? 0);
+  const previousWeekMin = Number(prev.rows[0]?.focus_min ?? 0);
+  const currentWeekSessions = Number(cur.rows[0]?.sessions ?? 0);
+  const previousWeekSessions = Number(prev.rows[0]?.sessions ?? 0);
+  let deltaPct: number | null = null;
+  if (previousWeekMin > 0) {
+    deltaPct = ((currentWeekMin - previousWeekMin) / previousWeekMin) * 100;
+  } else if (currentWeekMin > 0) {
+    deltaPct = 100;
+  }
+  return {
+    currentWeekMin,
+    previousWeekMin,
+    currentWeekSessions,
+    previousWeekSessions,
+    deltaPct,
+  };
+}
+
 export async function getPomodoroByDay(days: number): Promise<{ date: string; count: number }[]> {
   await initDb();
   const c = db();

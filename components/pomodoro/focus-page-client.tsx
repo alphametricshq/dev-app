@@ -4,13 +4,29 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Brain, Clock, Flame, Calendar } from "lucide-react";
 import { PomodoroTimer } from "./timer";
 import { SessionsHistory } from "./sessions-history";
+import { FocusMinutesChart } from "./focus-minutes-chart";
+import { TopCardsRanking } from "./top-cards-ranking";
+import { WeekComparisonCard } from "./week-comparison-card";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { usePomodoroState } from "@/lib/use-pomodoro";
-import type { PomodoroSession, PomodoroStats } from "@/lib/db/pomodoro-queries";
+import type {
+  PomodoroSession,
+  PomodoroStats,
+  FocusByDay,
+  TopCard,
+  WeekComparison,
+} from "@/lib/db/pomodoro-queries";
+
+type AdvancedStats = {
+  byDay: FocusByDay[];
+  topCards: TopCard[];
+  weekComparison: WeekComparison;
+};
 
 export function FocusPageClient() {
   const [sessions, setSessions] = useState<PomodoroSession[]>([]);
   const [stats, setStats] = useState<PomodoroStats | null>(null);
+  const [advanced, setAdvanced] = useState<AdvancedStats | null>(null);
   const [loading, setLoading] = useState(true);
   const pomodoro = usePomodoroState();
   const lastStatusRef = useRef(pomodoro?.status);
@@ -33,11 +49,22 @@ export function FocusPageClient() {
   async function refresh() {
     setLoading(true);
     try {
-      const res = await fetch("/api/pomodoro");
-      const data = await res.json();
-      if (data?.ok) {
-        setSessions(data.sessions);
-        setStats(data.stats);
+      const [resStats, resAdv] = await Promise.all([
+        fetch("/api/pomodoro"),
+        fetch("/api/pomodoro/advanced"),
+      ]);
+      const stats = await resStats.json();
+      const adv = await resAdv.json();
+      if (stats?.ok) {
+        setSessions(stats.sessions);
+        setStats(stats.stats);
+      }
+      if (adv?.ok) {
+        setAdvanced({
+          byDay: adv.byDay ?? [],
+          topCards: adv.topCards ?? [],
+          weekComparison: adv.weekComparison,
+        });
       }
     } finally {
       setLoading(false);
@@ -62,12 +89,16 @@ export function FocusPageClient() {
           hint={`${stats?.todayFocusMin ?? 0} min de foco`}
           icon={Brain}
         />
-        <StatCard
-          label="Esta semana"
-          value={stats?.weekSessions ?? 0}
-          hint={`${stats?.weekFocusMin ?? 0} min`}
-          icon={Calendar}
-        />
+        {advanced ? (
+          <WeekComparisonCard data={advanced.weekComparison} />
+        ) : (
+          <StatCard
+            label="Esta semana"
+            value={stats?.weekSessions ?? 0}
+            hint={`${stats?.weekFocusMin ?? 0} min`}
+            icon={Calendar}
+          />
+        )}
         <StatCard
           label="Total"
           value={stats?.totalSessions ?? 0}
@@ -88,6 +119,15 @@ export function FocusPageClient() {
         </div>
         <SessionsHistory sessions={sessions} />
       </div>
+
+      {advanced && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <FocusMinutesChart data={advanced.byDay} />
+          </div>
+          <TopCardsRanking cards={advanced.topCards} />
+        </div>
+      )}
     </div>
   );
 }
