@@ -285,6 +285,44 @@ export type HabitsCalendar = {
   logs: Record<string, number[]>;
 };
 
+export type HabitsYearlyData = {
+  habits: { id: number; name: string; emoji: string; color: string }[];
+  // date → habit_ids feitos
+  logs: Record<string, number[]>;
+};
+
+export async function getHabitsYearly(habitId?: number | null): Promise<HabitsYearlyData> {
+  await initDb();
+  const c = db();
+  const habitsR = await c.execute(
+    `SELECT id, name, emoji, color FROM habits WHERE archived = 0 ORDER BY position, id`,
+  );
+  const habits = habitsR.rows.map((row) => ({
+    id: Number(row.id),
+    name: row.name as string,
+    emoji: row.emoji as string,
+    color: row.color as string,
+  }));
+
+  const sql = habitId
+    ? `SELECT habit_id, date FROM habit_logs
+       WHERE date >= date('now', '-365 days') AND habit_id = ?
+       ORDER BY date ASC`
+    : `SELECT habit_id, date FROM habit_logs
+       WHERE date >= date('now', '-365 days')
+       ORDER BY date ASC`;
+  const args = habitId ? [habitId] : [];
+  const logsR = await c.execute({ sql, args });
+  const logs: Record<string, number[]> = {};
+  for (const row of logsR.rows) {
+    const date = row.date as string;
+    const hid = Number(row.habit_id);
+    if (!logs[date]) logs[date] = [];
+    logs[date].push(hid);
+  }
+  return { habits, logs };
+}
+
 export async function getHabitsCalendar(year: number, month: number): Promise<HabitsCalendar> {
   await initDb();
   const c = db();

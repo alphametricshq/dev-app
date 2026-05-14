@@ -10,15 +10,16 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays, BarChart3 } from "lucide-react";
 import { HabitCard } from "./habit-card";
 import { HabitForm, type HabitFormValues } from "./habit-form";
 import { HabitsCalendarView } from "./habits-calendar-view";
+import { HabitsYearlyView } from "./habits-yearly-view";
 import { HabitsWeeklyGoals } from "./weekly-goals-card";
 import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
 
-type ViewMode = "cards" | "calendar";
+type ViewMode = "cards" | "calendar" | "yearly";
 
 export function HabitsPageClient() {
   const [habits, setHabits] = useState<HabitWithStats[]>([]);
@@ -185,6 +186,16 @@ export function HabitsPageClient() {
             <CalendarDays className="h-3 w-3" />
             Calendário
           </button>
+          <button
+            onClick={() => setView("yearly")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              view === "yearly" ? "bg-bg-card text-fg shadow-sm" : "text-fg-muted hover:text-fg",
+            )}
+          >
+            <BarChart3 className="h-3 w-3" />
+            Anual
+          </button>
         </div>
         <button onClick={() => setCreating(true)} className="btn-primary py-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" />
@@ -208,6 +219,8 @@ export function HabitsPageClient() {
         </div>
       ) : view === "calendar" ? (
         <HabitsCalendarView />
+      ) : view === "yearly" ? (
+        <HabitsYearlyView />
       ) : (
         <>
           <HabitsWeeklyGoals habits={habits} />
