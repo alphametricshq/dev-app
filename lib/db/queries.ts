@@ -278,6 +278,40 @@ export async function getPinnedCardIds(): Promise<Set<string>> {
   return new Set(r.rows.map((row) => row.card_id as string));
 }
 
+/**
+ * Pega pinned cards validando cada um contra o Trello. Cards que retornam 404
+ * (ou estão arquivados) são removidos do banco. Erros de rede/auth não removem
+ * — preservam o pin. Retorna só os pins válidos.
+ */
+export async function getValidatedPinnedCards(limit = 10): Promise<PinnedCard[]> {
+  const { cardExists } = await import("@/lib/integrations/trello-api");
+  const all = await getPinnedCards(100);
+  if (all.length === 0) return [];
+  const checks = await Promise.all(
+    all.map(async (p) => {
+      try {
+        const exists = await cardExists(p.card_id);
+        return { card: p, exists };
+      } catch {
+        return { card: p, exists: null as boolean | null };
+      }
+    }),
+  );
+  for (const c of checks) {
+    if (c.exists === false) {
+      try {
+        await unpinCard(c.card.card_id);
+      } catch {
+        // ignora
+      }
+    }
+  }
+  return checks
+    .filter((c) => c.exists !== false)
+    .map((c) => c.card)
+    .slice(0, limit);
+}
+
 // ============== Sync Log ==============
 
 export async function logSyncStart(source: string): Promise<number> {
