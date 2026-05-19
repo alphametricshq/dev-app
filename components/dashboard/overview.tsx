@@ -4,7 +4,7 @@ import {
   getTrelloByBoard,
   getRecentTrelloTasks,
   getLastSyncs,
-  getPinnedCards,
+  getValidatedPinnedCards,
 } from "@/lib/db/queries";
 import { getGamificationSummary } from "@/lib/gamification";
 import { getGithubAnalytics } from "@/lib/analytics/github";
@@ -34,7 +34,7 @@ export async function OverviewDashboard() {
     getGamificationSummary(),
     getGithubAnalytics(),
     getTrelloAnalytics(),
-    getPinnedCards(3),
+    getValidatedPinnedCards(3),
     getRecentActivity(7, 40),
   ]);
   const dailyGoal = gami.goals.find((g) => g.period === "daily")!;

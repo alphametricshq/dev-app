@@ -71,6 +71,37 @@ async function call<T>(
   return (await res.json()) as T;
 }
 
+// Check se card existe no Trello.
+// Retorna true (existe e ativo) | false (404 ou arquivado) | null (outro erro, rede/auth).
+export async function cardExists(cardId: string): Promise<boolean | null> {
+  try {
+    const { key, token } = auth();
+    const url = new URL(`${TRELLO_API}/cards/${cardId}`);
+    url.searchParams.set("key", key);
+    url.searchParams.set("token", token);
+    url.searchParams.set("fields", "id,closed");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), {
+        method: "GET",
+        headers: { "User-Agent": "dashboard-pessoal", Accept: "application/json" },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (res.status === 404) return false;
+    if (!res.ok) return null;
+    const data = (await res.json()) as { id: string; closed?: boolean };
+    if (data.closed) return false;
+    return true;
+  } catch {
+    return null;
+  }
+}
+
 // ============== Boards ==============
 
 export function getMyBoards(): Promise<TrelloBoardSummary[]> {
