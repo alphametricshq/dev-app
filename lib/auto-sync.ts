@@ -1,5 +1,6 @@
 import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
+import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
 
@@ -9,7 +10,7 @@ const g = globalThis as GlobalWithFlag;
 
 const DEFAULT_INTERVAL_MIN = 10;
 
-async function runSync(source: "github" | "trello", fn: () => Promise<{ itemsSynced: number }>) {
+async function runSync(source: "github" | "trello" | "issues", fn: () => Promise<{ itemsSynced: number }>) {
   const id = await logSyncStart(source);
   try {
     const r = await fn();
@@ -25,6 +26,17 @@ async function tick() {
   const trReady = !!getCredential("TRELLO_API_KEY") && !!getCredential("TRELLO_TOKEN");
   if (ghReady) await runSync("github", () => syncGithub().then((r) => ({ itemsSynced: r.itemsSynced })));
   if (trReady) await runSync("trello", () => syncTrello(90).then((r) => ({ itemsSynced: r.itemsSynced })));
+  // Issues → Trello (só se token GH + credenciais Trello + integração ligada)
+  if (ghReady && trReady) {
+    try {
+      const cfg = await getIssuesSyncConfig();
+      if (cfg.enabled) {
+        await runSync("issues", () => syncIssuesToTrello().then((r) => ({ itemsSynced: r.created })));
+      }
+    } catch {
+      // ignora — não quebra o ciclo de sync
+    }
+  }
 }
 
 export function startAutoSync() {
