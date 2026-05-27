@@ -1,6 +1,7 @@
 import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
 import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
+import { syncProjectToTrello, getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
 
@@ -10,7 +11,7 @@ const g = globalThis as GlobalWithFlag;
 
 const DEFAULT_INTERVAL_MIN = 10;
 
-async function runSync(source: "github" | "trello" | "issues", fn: () => Promise<{ itemsSynced: number }>) {
+async function runSync(source: "github" | "trello" | "issues" | "project", fn: () => Promise<{ itemsSynced: number }>) {
   const id = await logSyncStart(source);
   try {
     const r = await fn();
@@ -35,6 +36,15 @@ async function tick() {
       }
     } catch {
       // ignora — não quebra o ciclo de sync
+    }
+    // GitHub Project → Trello (só se ligado)
+    try {
+      const pcfg = await getProjectSyncConfig();
+      if (pcfg.enabled) {
+        await runSync("project", () => syncProjectToTrello().then((r) => ({ itemsSynced: r.created })));
+      }
+    } catch {
+      // ignora
     }
   }
 }
