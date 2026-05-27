@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
 import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
+import { syncProjectToTrello, getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 
 export const runtime = "nodejs";
@@ -51,6 +52,25 @@ export async function POST() {
     }
   } catch {
     // ignora se não conseguir ler config
+  }
+
+  // GitHub Project → Trello (só se a integração estiver ligada)
+  try {
+    const pcfg = await getProjectSyncConfig();
+    if (pcfg.enabled) {
+      const prId = await logSyncStart("project");
+      try {
+        const r = await syncProjectToTrello();
+        results.project = { ok: true, itemsSynced: r.created };
+        await logSyncFinish(prId, "success", r.created, `${r.created} card(s) do project`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro desconhecido";
+        results.project = { ok: false, error: msg };
+        await logSyncFinish(prId, "error", 0, msg);
+      }
+    }
+  } catch {
+    // ignora
   }
 
   const anyOk = Object.values(results).some((r) => r.ok);

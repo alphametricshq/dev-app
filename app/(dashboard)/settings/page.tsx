@@ -9,6 +9,7 @@ import { StreakWarningSettings } from "@/components/streak-warning-settings";
 import { ShortcutsEditor } from "@/components/shortcuts-editor";
 import { TemplatesManager } from "@/components/templates-manager";
 import { IssuesTrelloSettings } from "@/components/issues-trello-settings";
+import { ProjectTrelloSettings } from "@/components/project-trello-settings";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default function SettingsPage() {
         <StreakWarningSettings />
         <ShortcutsEditor />
         <GoalsForm />
+        <ProjectTrelloSettings />
         <IssuesTrelloSettings />
         <TemplatesManager />
         <SettingsForm initialIntervalMin={autoSyncMin} />
