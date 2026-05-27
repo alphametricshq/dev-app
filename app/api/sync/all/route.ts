@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
+import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 
 export const runtime = "nodejs";
@@ -33,10 +34,29 @@ export async function POST() {
     await logSyncFinish(trId, "error", 0, msg);
   }
 
+  // Issues → Trello (só se a integração estiver ligada)
+  try {
+    const cfg = await getIssuesSyncConfig();
+    if (cfg.enabled) {
+      const issId = await logSyncStart("issues");
+      try {
+        const r = await syncIssuesToTrello();
+        results.issues = { ok: true, itemsSynced: r.created };
+        await logSyncFinish(issId, "success", r.created, `${r.created} card(s) de issues`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro desconhecido";
+        results.issues = { ok: false, error: msg };
+        await logSyncFinish(issId, "error", 0, msg);
+      }
+    }
+  } catch {
+    // ignora se não conseguir ler config
+  }
+
   const anyOk = Object.values(results).some((r) => r.ok);
   const allOk = Object.values(results).every((r) => r.ok);
   const message = allOk
-    ? `OK · GH ${results.github.itemsSynced ?? 0} · Trello ${results.trello.itemsSynced ?? 0}`
+    ? `OK · GH ${results.github.itemsSynced ?? 0} · Trello ${results.trello.itemsSynced ?? 0}${results.issues ? ` · Issues ${results.issues.itemsSynced ?? 0}` : ""}`
     : Object.entries(results)
         .filter(([, v]) => !v.ok)
         .map(([k, v]) => `${k}: ${v.error}`)

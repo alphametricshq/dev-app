@@ -156,4 +156,15 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_templates_type ON templates(type, name);
+
+CREATE TABLE IF NOT EXISTS issue_card_links (
+  issue_key TEXT PRIMARY KEY,
+  issue_url TEXT,
+  issue_title TEXT,
+  card_id TEXT,
+  card_url TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_issue_links_created ON issue_card_links(created_at DESC);
 `;

@@ -111,6 +111,14 @@ export function getMyBoards(): Promise<TrelloBoardSummary[]> {
   }).then((boards) => boards.map((b) => ({ id: b.id, name: b.name })));
 }
 
+// Lista leve (só lists abertas) — usado por automações que não precisam dos cards.
+export function getBoardListsOnly(boardId: string): Promise<TrelloListItem[]> {
+  return call<TrelloListItem[]>("GET", `/boards/${boardId}/lists`, {
+    fields: "id,name,idBoard,closed,pos",
+    filter: "open",
+  });
+}
+
 export async function getBoardFull(boardId: string): Promise<TrelloBoardFull> {
   const [board, lists, cards, labels] = await Promise.all([
     call<{ id: string; name: string }>("GET", `/boards/${boardId}`, { fields: "id,name" }),
