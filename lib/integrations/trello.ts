@@ -1,9 +1,8 @@
 import { upsertTrelloCompletedTasks, type TrelloTaskInsert } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
+import { isDoneListName } from "@/lib/trello-hints";
 
 const TRELLO_API = "https://api.trello.com/1";
-
-const DONE_LIST_HINTS = ["done", "concluído", "concluido", "feito", "finalizado", "completo", "completed"];
 
 type TrelloBoard = { id: string; name: string; closed: boolean };
 type TrelloList = { id: string; name: string; idBoard: string; closed: boolean };
@@ -52,11 +51,6 @@ export async function getBoardLists(boardId: string): Promise<TrelloList[]> {
   return trelloFetch<TrelloList[]>(`/boards/${boardId}/lists`, { fields: "id,name,idBoard,closed", filter: "open" });
 }
 
-function isDoneList(name: string): boolean {
-  const lower = name.toLowerCase().trim();
-  return DONE_LIST_HINTS.some((h) => lower.includes(h));
-}
-
 async function resolveDoneListIds(): Promise<{ id: string; name: string; boardId: string; boardName: string }[]> {
   const explicit = getCredential("TRELLO_DONE_LIST_IDS")?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
   const boards = await getMyBoards();
@@ -66,7 +60,7 @@ async function resolveDoneListIds(): Promise<{ id: string; name: string; boardId
     const lists = await getBoardLists(board.id);
     for (const list of lists) {
       const matchExplicit = explicit.includes(list.id);
-      const matchAuto = explicit.length === 0 && isDoneList(list.name);
+      const matchAuto = explicit.length === 0 && isDoneListName(list.name);
       if (matchExplicit || matchAuto) {
         result.push({ id: list.id, name: list.name, boardId: board.id, boardName: board.name });
       }

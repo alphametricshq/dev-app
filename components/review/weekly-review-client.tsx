@@ -224,7 +224,6 @@ function DailyBreakdown({ review }: { review: WeeklyReview }) {
       </div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((d) => {
-          const totalH = ((d.gh + d.tr) / max) * 100;
           const ghH = max > 0 ? (d.gh / max) * 100 : 0;
           const trH = max > 0 ? (d.tr / max) * 100 : 0;
           const isToday = d.date === localIsoDate();

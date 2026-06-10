@@ -116,7 +116,7 @@ export function XpHistoryChart({ history }: { history: XpHistory }) {
                 x={lu.date}
                 y={lu.xp}
                 r={5}
-                fill="hsl(155 60% 50%)"
+                fill="hsl(150 60% 50%)"
                 stroke="hsl(220 14% 8%)"
                 strokeWidth={2}
                 ifOverflow="extendDomain"
@@ -124,7 +124,7 @@ export function XpHistoryChart({ history }: { history: XpHistory }) {
                   value: `nv ${lu.level}`,
                   position: "top",
                   fontSize: 10,
-                  fill: "hsl(155 60% 60%)",
+                  fill: "hsl(150 60% 60%)",
                 }}
               />
             ))}

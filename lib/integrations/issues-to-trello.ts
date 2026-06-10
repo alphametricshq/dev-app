@@ -1,10 +1,10 @@
-import { getMyBoards, getBoardListsOnly, createCard } from "@/lib/integrations/trello-api";
+import { createCard } from "@/lib/integrations/trello-api";
+import { findTodoList } from "@/lib/integrations/trello-todo";
 import { fetchAssignedIssues } from "@/lib/integrations/github-issues";
 import { getLinkedIssueKeys, linkIssue } from "@/lib/db/issues-queries";
 import { getSetting, setSetting } from "@/lib/db/queries";
 
 const SETTING_KEY = "issues_to_trello";
-const TODO_HINTS = ["to-do", "todo", "to do", "a fazer", "afazer", "backlog", "pra fazer"];
 
 export type IssuesSyncConfig = { enabled: boolean };
 
@@ -21,29 +21,6 @@ export async function getIssuesSyncConfig(): Promise<IssuesSyncConfig> {
 
 export async function setIssuesSyncConfig(cfg: IssuesSyncConfig): Promise<void> {
   await setSetting(SETTING_KEY, JSON.stringify(cfg));
-}
-
-/**
- * Acha a primeira lista "To-do" varrendo os boards do usuário.
- * Retorna { listId, listName, boardName } ou null se não achar.
- */
-async function findTodoList(): Promise<{ listId: string; listName: string; boardName: string } | null> {
-  const boards = await getMyBoards();
-  for (const board of boards) {
-    const lists = await getBoardListsOnly(board.id);
-    const open = [...lists].filter((l) => !l.closed).sort((a, b) => a.pos - b.pos);
-    const match = open.find((l) => TODO_HINTS.some((h) => l.name.toLowerCase().includes(h)));
-    if (match) return { listId: match.id, listName: match.name, boardName: board.name };
-  }
-  // Fallback: primeira lista do primeiro board
-  if (boards.length > 0) {
-    const lists = await getBoardListsOnly(boards[0].id);
-    const open = [...lists].filter((l) => !l.closed).sort((a, b) => a.pos - b.pos);
-    if (open.length > 0) {
-      return { listId: open[0].id, listName: open[0].name, boardName: boards[0].name };
-    }
-  }
-  return null;
 }
 
 function buildCardDesc(issue: { htmlUrl: string; repoFullName: string; body: string }): string {

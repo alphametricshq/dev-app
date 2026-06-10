@@ -220,9 +220,3 @@ export function previewSound(preset: SoundPresetId, event: SoundEvent, customDat
   if (!map) return;
   playSequence(map[event], vol);
 }
-
-export function playTick() {
-  if (!isSoundsEnabled()) return;
-  const cfg = getSoundConfig();
-  playTone({ freq: 880, duration: 0.05, volume: 0.05, type: "square" }, cfg.volume);
-}
