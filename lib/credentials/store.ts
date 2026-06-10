@@ -6,6 +6,7 @@ import os from "node:os";
 export type Credentials = {
   GITHUB_USERNAME?: string;
   GITHUB_TOKEN?: string;
+  GITHUB_PROJECT_TOKEN?: string;
   TRELLO_API_KEY?: string;
   TRELLO_TOKEN?: string;
   TRELLO_DONE_LIST_IDS?: string;
@@ -15,6 +16,7 @@ export type Credentials = {
 export const CREDENTIAL_KEYS: (keyof Credentials)[] = [
   "GITHUB_USERNAME",
   "GITHUB_TOKEN",
+  "GITHUB_PROJECT_TOKEN",
   "TRELLO_API_KEY",
   "TRELLO_TOKEN",
   "TRELLO_DONE_LIST_IDS",

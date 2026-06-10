@@ -1,6 +1,4 @@
-import { getCredential } from "@/lib/credentials/store";
-
-const GH_GRAPHQL = "https://api.github.com/graphql";
+import { projectGraphql } from "@/lib/integrations/github-token";
 
 export type ProjectItem = {
   itemId: string;
@@ -11,9 +9,24 @@ export type ProjectItem = {
   status: string | null;
   state: string | null; // OPEN/CLOSED do issue (null pra draft)
   assignees: string[];
+  cliente: string | null;
+  prioridade: string | null;
+  tipo: string | null;
+  deadline: string | null; // ISO yyyy-mm-dd
+  isDraft: boolean;
+};
+
+export type ProjectStatusOption = { id: string; name: string };
+
+export type ProjectMeta = {
+  projectId: string;
+  title: string;
+  statusFieldId: string;
+  statusOptions: ProjectStatusOption[];
 };
 
 type GqlContent = {
+  __typename?: string;
   title?: string;
   number?: number;
   url?: string;
@@ -23,7 +36,8 @@ type GqlContent = {
 };
 
 type GqlFieldValue = {
-  name?: string;
+  name?: string; // single select
+  date?: string; // date field
   field?: { name?: string };
 };
 
@@ -33,21 +47,31 @@ type GqlItem = {
   fieldValues: { nodes: GqlFieldValue[] };
 };
 
-type GqlResponse = {
-  data?: {
-    organization?: {
-      projectV2?: {
-        items: {
-          pageInfo: { hasNextPage: boolean; endCursor: string | null };
-          nodes: GqlItem[];
-        };
-      } | null;
+type ItemsData = {
+  organization?: {
+    projectV2?: {
+      items: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: GqlItem[];
+      };
     } | null;
-  };
-  errors?: { message: string }[];
+  } | null;
 };
 
-const QUERY = `
+type MetaData = {
+  organization?: {
+    projectV2?: {
+      id: string;
+      title: string;
+      field?: {
+        id: string;
+        options: { id: string; name: string }[];
+      } | null;
+    } | null;
+  } | null;
+};
+
+const ITEMS_QUERY = `
 query($org: String!, $num: Int!, $cursor: String) {
   organization(login: $org) {
     projectV2(number: $num) {
@@ -56,6 +80,7 @@ query($org: String!, $num: Int!, $cursor: String) {
         nodes {
           id
           content {
+            __typename
             ... on Issue { title number url state assignees(first: 10) { nodes { login } } repository { nameWithOwner } }
             ... on PullRequest { title number url state assignees(first: 10) { nodes { login } } repository { nameWithOwner } }
             ... on DraftIssue { title assignees(first: 10) { nodes { login } } }
@@ -64,6 +89,10 @@ query($org: String!, $num: Int!, $cursor: String) {
             nodes {
               ... on ProjectV2ItemFieldSingleSelectValue {
                 name
+                field { ... on ProjectV2FieldCommon { name } }
+              }
+              ... on ProjectV2ItemFieldDateValue {
+                date
                 field { ... on ProjectV2FieldCommon { name } }
               }
             }
@@ -75,44 +104,71 @@ query($org: String!, $num: Int!, $cursor: String) {
 }
 `;
 
-export async function fetchProjectItems(org: string, projectNumber: number): Promise<ProjectItem[]> {
-  const token = getCredential("GITHUB_TOKEN");
-  if (!token) throw new Error("GITHUB_TOKEN ausente");
+const META_QUERY = `
+query($org: String!, $num: Int!) {
+  organization(login: $org) {
+    projectV2(number: $num) {
+      id
+      title
+      field(name: "Status") {
+        ... on ProjectV2SingleSelectField {
+          id
+          options { id name }
+        }
+      }
+    }
+  }
+}
+`;
 
+const MOVE_MUTATION = `
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(input: {
+    projectId: $projectId,
+    itemId: $itemId,
+    fieldId: $fieldId,
+    value: { singleSelectOptionId: $optionId }
+  }) {
+    projectV2Item { id }
+  }
+}
+`;
+
+function fieldValue(nodes: GqlFieldValue[], fieldName: string): GqlFieldValue | undefined {
+  return nodes.find((fv) => fv.field?.name === fieldName);
+}
+
+export async function fetchProjectItems(org: string, projectNumber: number): Promise<ProjectItem[]> {
   const items: ProjectItem[] = [];
   let cursor: string | null = null;
 
   for (let page = 0; page < 10; page++) {
-    const res: Response = await fetch(GH_GRAPHQL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "User-Agent": "dashboard-pessoal",
-      },
-      body: JSON.stringify({ query: QUERY, variables: { org, num: projectNumber, cursor } }),
+    const data: ItemsData = await projectGraphql<ItemsData>(ITEMS_QUERY, {
+      org,
+      num: projectNumber,
+      cursor,
     });
-    if (!res.ok) throw new Error(`GitHub Project ${res.status}: ${await res.text()}`);
-    const json = (await res.json()) as GqlResponse;
-    if (json.errors?.length) {
-      throw new Error(`GitHub GraphQL: ${json.errors.map((e) => e.message).join("; ")}`);
-    }
-    const proj = json.data?.organization?.projectV2;
+    const proj = data.organization?.projectV2;
     if (!proj) throw new Error("Project não encontrado ou sem acesso");
 
     for (const node of proj.items.nodes) {
       const c = node.content;
       if (!c) continue;
-      const statusVal = node.fieldValues.nodes.find((fv) => fv.field?.name === "Status");
+      const fv = node.fieldValues.nodes;
       items.push({
         itemId: node.id,
         title: c.title ?? "(sem título)",
         url: c.url ?? null,
         number: c.number ?? null,
         repoFullName: c.repository?.nameWithOwner ?? null,
-        status: statusVal?.name ?? null,
+        status: fieldValue(fv, "Status")?.name ?? null,
         state: c.state ?? null,
         assignees: (c.assignees?.nodes ?? []).map((a) => a.login),
+        cliente: fieldValue(fv, "Cliente")?.name ?? null,
+        prioridade: fieldValue(fv, "Prioridade")?.name ?? null,
+        tipo: fieldValue(fv, "Tipo")?.name ?? null,
+        deadline: fieldValue(fv, "Deadline")?.date ?? null,
+        isDraft: c.__typename === "DraftIssue",
       });
     }
 
@@ -121,4 +177,31 @@ export async function fetchProjectItems(org: string, projectNumber: number): Pro
   }
 
   return items;
+}
+
+export async function fetchProjectMeta(org: string, projectNumber: number): Promise<ProjectMeta> {
+  const data = await projectGraphql<MetaData>(META_QUERY, { org, num: projectNumber });
+  const proj = data.organization?.projectV2;
+  if (!proj) throw new Error("Project não encontrado ou sem acesso");
+  if (!proj.field) throw new Error('Campo "Status" não encontrado no Project');
+  return {
+    projectId: proj.id,
+    title: proj.title,
+    statusFieldId: proj.field.id,
+    statusOptions: proj.field.options,
+  };
+}
+
+export async function moveProjectItem(input: {
+  projectId: string;
+  itemId: string;
+  fieldId: string;
+  optionId: string;
+}): Promise<void> {
+  await projectGraphql(MOVE_MUTATION, {
+    projectId: input.projectId,
+    itemId: input.itemId,
+    fieldId: input.fieldId,
+    optionId: input.optionId,
+  });
 }

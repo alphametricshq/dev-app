@@ -36,8 +36,12 @@ export async function POST(req: Request) {
     };
     await setProjectSyncConfig(next);
 
+    // importExisting=true: liga SEM baseline, pra que os itens atuais virem card
+    // no próximo sync. Sem isso, ao ligar faz baseline (só novos viram card).
+    const importExisting = body.importExisting === true;
+
     let baselined = 0;
-    if (next.enabled && !prev.enabled) {
+    if (next.enabled && !prev.enabled && !importExisting) {
       try {
         const r = await baselineProject();
         baselined = r.baselined;

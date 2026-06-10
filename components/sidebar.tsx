@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy, Repeat, CalendarDays, Brain, BookOpen } from "lucide-react";
+import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy, Repeat, CalendarDays, Brain, BookOpen, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
   { href: "/foco", label: "Foco", icon: Brain },
   { href: "/board", label: "Board", icon: KanbanSquare },
+  { href: "/demandas", label: "Demandas", icon: FolderKanban },
   { href: "/habitos", label: "Hábitos", icon: Repeat },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/retrospectiva", label: "Retrospectiva", icon: CalendarDays },
