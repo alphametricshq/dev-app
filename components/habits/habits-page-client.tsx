@@ -3,13 +3,19 @@
 import { useEffect, useState } from "react";
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { Plus, Loader2, AlertCircle, Sparkles, LayoutGrid, CalendarDays, BarChart3 } from "lucide-react";
 import { HabitCard } from "./habit-card";
 import { HabitForm, type HabitFormValues } from "./habit-form";
@@ -29,7 +35,10 @@ export function HabitsPageClient() {
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<ViewMode>("cards");
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => {
     refresh();

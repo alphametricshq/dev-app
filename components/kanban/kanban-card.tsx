@@ -44,8 +44,15 @@ export function KanbanCard({
       {...attributes}
       {...listeners}
       onClick={() => onOpen?.(card)}
+      onKeyDown={(e) => {
+        // Enter abre o card (Space fica pro drag via KeyboardSensor)
+        if (e.key === "Enter" && e.target === e.currentTarget) {
+          e.preventDefault();
+          onOpen?.(card);
+        }
+      }}
       className={cn(
-        "group relative cursor-pointer touch-none rounded-lg border bg-bg-card p-2.5 text-sm shadow-sm transition-colors hover:bg-bg-hover",
+        "group relative cursor-pointer touch-none rounded-lg border bg-bg-card p-2.5 text-sm shadow-sm transition-colors hover:bg-bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
         pinned ? "border-warning/40 hover:border-warning/60" : "border-border hover:border-border-strong",
         showOverlay && "opacity-40",
       )}
@@ -104,7 +111,7 @@ export function KanbanCard({
                 "rounded p-1 transition-all",
                 pinned
                   ? "text-warning opacity-100"
-                  : "text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-warning group-hover:opacity-100",
+                  : "text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-warning group-hover:opacity-100 focus-visible:opacity-100",
               )}
               aria-label={pinned ? "Desafixar" : "Fixar como prioridade"}
             >
@@ -123,7 +130,7 @@ export function KanbanCard({
                 if (ok) onDelete(card.id);
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-danger/20 hover:text-danger group-hover:opacity-100"
+              className="rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-danger/20 hover:text-danger group-hover:opacity-100 focus-visible:opacity-100"
               aria-label="Apagar"
             >
               <Trash2 className="h-3.5 w-3.5" />
