@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   getGithubContributions,
   getTrelloCompletedByDay,
@@ -120,8 +121,8 @@ export async function OverviewDashboard() {
             <h2 className="text-base font-semibold text-fg">Análise de desempenho</h2>
           </div>
           <div className="flex gap-3 text-[11px] text-fg-muted">
-            <a href="/github" className="hover:text-fg">Detalhes GitHub →</a>
-            <a href="/trello" className="hover:text-fg">Detalhes Trello →</a>
+            <Link href="/github" className="hover:text-fg">Detalhes GitHub →</Link>
+            <Link href="/trello" className="hover:text-fg">Detalhes Trello →</Link>
           </div>
         </header>
 
