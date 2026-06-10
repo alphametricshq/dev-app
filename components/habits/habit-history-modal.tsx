@@ -4,19 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Flame, Loader2, Calendar, TrendingUp, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HABIT_COLOR_CSS, habitColorCss } from "@/lib/habit-colors";
 import type { Habit } from "@/lib/db/habits-queries";
 
 const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const DAY_LABELS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-
-const COLOR_HEX: Record<string, string> = {
-  accent: "var(--accent)",
-  success: "hsl(155 60% 50%)",
-  warning: "hsl(38 90% 55%)",
-  danger: "hsl(0 70% 60%)",
-  blue: "hsl(200 80% 60%)",
-  pink: "hsl(320 70% 65%)",
-};
 
 type Streak = { length: number; from: string; to: string };
 
@@ -52,7 +44,7 @@ export function HabitHistoryModal({ habitId, onClose }: { habitId: number; onClo
   }, [onClose]);
 
   const stats = useMemo(() => computeStats(dates), [dates]);
-  const cellColor = habit ? COLOR_HEX[habit.color] ?? COLOR_HEX.accent : COLOR_HEX.accent;
+  const cellColor = habit ? habitColorCss(habit.color) : HABIT_COLOR_CSS.accent;
 
   if (typeof window === "undefined") return null;
 
@@ -214,7 +206,7 @@ function YearlyHeatmap({ dates, cellColor }: { dates: Set<string>; cellColor: st
                     key={di}
                     title={`${formatDate(cell.iso)} — ${cell.done ? "feito" : "não"}`}
                     className="h-3 w-3 rounded-sm"
-                    style={{ backgroundColor: cell.done ? cellColor : "hsl(var(--bg-hover-hsl, 220 14% 16%))", opacity: cell.done ? 1 : 0.3 }}
+                    style={{ backgroundColor: cell.done ? cellColor : "hsl(220 14% 16%)", opacity: cell.done ? 1 : 0.3 }}
                   />
                 );
               })}
