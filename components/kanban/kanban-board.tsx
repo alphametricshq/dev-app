@@ -124,8 +124,16 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     return findCard(id)?.idList;
   }
 
+  // Cards otimistas (criados mas ainda sem id real do Trello) não podem
+  // disparar chamadas de API — o id temp-* é inválido lá
+  function isTempId(id: string): boolean {
+    return id.startsWith("temp-");
+  }
+
   function handleDragStart(e: DragStartEvent) {
-    const card = findCard(String(e.active.id));
+    const id = String(e.active.id);
+    if (isTempId(id)) return;
+    const card = findCard(id);
     if (card) setActiveCard(card);
   }
 
@@ -154,6 +162,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     setActiveCard(null);
     if (!over || !board) return;
     const activeId = String(active.id);
+    if (isTempId(activeId)) return;
     const overId = String(over.id);
     const card = findCard(activeId);
     if (!card) return;
@@ -290,7 +299,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   }
 
   async function updateCardDetails(cardId: string, input: { name?: string; desc?: string }) {
-    if (!board) return;
+    if (!board || isTempId(cardId)) return;
     const before = board.cards.find((c) => c.id === cardId);
     if (!before) return;
     setBoard(
@@ -314,7 +323,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   }
 
   async function deleteCard(cardId: string) {
-    if (!board) return;
+    if (!board || isTempId(cardId)) return;
     const before = board.cards.find((c) => c.id === cardId);
     setBoard((prev) => prev && { ...prev, cards: prev.cards.filter((c) => c.id !== cardId) });
     try {
@@ -379,11 +388,15 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
   }
 
   async function togglePinCard(card: TrelloCardItem, currentlyPinned: boolean) {
-    if (!board) return;
-    const next = new Set(pinnedIds);
-    if (currentlyPinned) next.delete(card.id);
-    else next.add(card.id);
-    setPinnedIds(next);
+    if (!board || isTempId(card.id)) return;
+    // Updates funcionais: rollback com snapshot sobrescrevia toggles
+    // concorrentes de outros cards feitos enquanto o fetch estava em voo
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (currentlyPinned) next.delete(card.id);
+      else next.add(card.id);
+      return next;
+    });
     try {
       const list = board.lists.find((l) => l.id === card.idList);
       if (currentlyPinned) {
@@ -406,9 +419,13 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
       }
     } catch (e) {
       toast.error("Erro", e instanceof Error ? e.message : String(e));
-      // rollback
-      const rollback = new Set(pinnedIds);
-      setPinnedIds(rollback);
+      // rollback só do card afetado
+      setPinnedIds((prev) => {
+        const next = new Set(prev);
+        if (currentlyPinned) next.add(card.id);
+        else next.delete(card.id);
+        return next;
+      });
     }
   }
 
@@ -489,7 +506,9 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
                 pomodoroCounts={pomodoroCounts}
                 onAddCard={addCard}
                 onApplyTemplate={applyTemplate}
-                onOpenCard={(c) => setOpenCardId(c.id)}
+                onOpenCard={(c) => {
+                  if (!isTempId(c.id)) setOpenCardId(c.id);
+                }}
                 onDeleteCard={deleteCard}
                 onTogglePinCard={togglePinCard}
                 onRenameList={renameList}
