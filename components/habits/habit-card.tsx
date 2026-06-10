@@ -54,7 +54,7 @@ export function HabitCard({
       <button
         {...attributes}
         {...listeners}
-        className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-bg-hover hover:text-fg group-hover:opacity-100 active:cursor-grabbing"
+        className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-bg-hover hover:text-fg group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
         aria-label="Arrastar"
         title="Arrastar pra reordenar"
       >
