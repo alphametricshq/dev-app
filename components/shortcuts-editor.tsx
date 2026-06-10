@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Keyboard, RotateCcw, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/dialogs";
 import {
   getShortcutsConfig,
   setShortcutsConfig,
@@ -61,8 +62,12 @@ export function ShortcutsEditor() {
     toast.success("Atalho atualizado", prettyAccel(accel));
   }
 
-  function resetAll() {
-    if (!confirm("Resetar atalhos pro padrão?")) return;
+  async function resetAll() {
+    const ok = await confirmDialog({
+      title: "Resetar atalhos pro padrão?",
+      confirmLabel: "Resetar",
+    });
+    if (!ok) return;
     save({ ...DEFAULT_SHORTCUTS });
     toast.success("Atalhos resetados");
   }

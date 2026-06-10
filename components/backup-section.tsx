@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Database, Download, Upload, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/dialogs";
 
 export function BackupSection() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,13 +41,14 @@ export function BackupSection() {
     e.target.value = "";
     if (!file) return;
 
-    if (
-      !confirm(
-        "⚠️ Importar vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, pinned cards, configs). Continuar?",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: "Importar backup?",
+      description:
+        "⚠️ Importar vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, pinned cards, configs).",
+      confirmLabel: "Sobrescrever tudo",
+      danger: true,
+    });
+    if (!ok) return;
 
     setImporting(true);
     try {

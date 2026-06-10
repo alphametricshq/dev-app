@@ -8,6 +8,7 @@ import type { TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-a
 import type { PomodoroSession } from "@/lib/db/pomodoro-queries";
 import { labelBg } from "@/lib/trello-labels";
 import { toast } from "@/lib/toast";
+import { confirmDialog, promptDialog } from "@/lib/dialogs";
 
 export function CardModal({
   card,
@@ -63,7 +64,13 @@ export function CardModal({
   }
 
   async function saveAsTemplate() {
-    const tplName = prompt("Nome do template:", card.name);
+    const tplName = await promptDialog({
+      title: "Salvar como template",
+      description: "O card (com checklists) fica disponível pra reaproveitar depois.",
+      placeholder: "Nome do template",
+      initial: card.name,
+      submitLabel: "Salvar",
+    });
     if (!tplName?.trim()) return;
     try {
       // Pega checklists atuais do card
@@ -247,8 +254,13 @@ export function CardModal({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (confirm(`Apagar "${card.name}"?`)) {
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: `Apagar "${card.name}"?`,
+                  confirmLabel: "Apagar",
+                  danger: true,
+                });
+                if (ok) {
                   onDelete();
                   onClose();
                 }

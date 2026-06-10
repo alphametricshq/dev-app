@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Target, GitCommit, CheckSquare, Save, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/dialogs";
 
 type GoalsConfig = {
   daily: { github: number; trello: number };
@@ -62,9 +63,13 @@ export function GoalsForm() {
     }
   }
 
-  function handleReset() {
+  async function handleReset() {
     if (!defaults) return;
-    if (!confirm("Voltar aos valores padrão?")) return;
+    const ok = await confirmDialog({
+      title: "Voltar aos valores padrão?",
+      confirmLabel: "Resetar",
+    });
+    if (!ok) return;
     setGoals(JSON.parse(JSON.stringify(defaults)));
     setDirty(true);
   }

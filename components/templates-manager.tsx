@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bookmark, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/dialogs";
 import type { Template } from "@/lib/db/templates-queries";
 
 export function TemplatesManager() {
@@ -26,7 +27,12 @@ export function TemplatesManager() {
   }, []);
 
   async function handleDelete(t: Template) {
-    if (!confirm(`Apagar template "${t.name}"?`)) return;
+    const ok = await confirmDialog({
+      title: `Apagar template "${t.name}"?`,
+      confirmLabel: "Apagar",
+      danger: true,
+    });
+    if (!ok) return;
     setTemplates((prev) => prev.filter((x) => x.id !== t.id));
     try {
       const res = await fetch(`/api/templates/${t.id}`, { method: "DELETE" });

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX, Play, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { alertDialog, confirmDialog } from "@/lib/dialogs";
 import {
   isSoundsEnabled,
   setSoundsEnabled,
@@ -60,7 +61,10 @@ export function SoundsToggle() {
 
   function onCustomFile(event: SoundEvent, file: File) {
     if (file.size > 1.5 * 1024 * 1024) {
-      alert("Arquivo muito grande. Limite: ~1.5MB (localStorage)");
+      alertDialog({
+        title: "Arquivo muito grande",
+        description: "Limite: ~1.5MB (localStorage)",
+      });
       return;
     }
     const reader = new FileReader();
@@ -86,8 +90,13 @@ export function SoundsToggle() {
     setConfig({ ...updated });
   }
 
-  function resetAll() {
-    if (!confirm("Resetar todos os sons pro padrão?")) return;
+  async function resetAll() {
+    const ok = await confirmDialog({
+      title: "Resetar todos os sons pro padrão?",
+      confirmLabel: "Resetar",
+      danger: true,
+    });
+    if (!ok) return;
     const def: SoundConfig = {
       volume: 0.6,
       events: {
