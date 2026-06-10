@@ -4,7 +4,7 @@ import {
   setProjectSyncConfig,
   baselineProject,
 } from "@/lib/integrations/project-to-trello";
-import { countLinkedIssues, listRecentIssueLinks } from "@/lib/db/issues-queries";
+import { listRecentIssueLinks } from "@/lib/db/issues-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

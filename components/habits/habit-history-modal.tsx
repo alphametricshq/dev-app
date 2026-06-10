@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Flame, Loader2, Calendar, TrendingUp, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { HABIT_COLOR_CSS, habitColorCss } from "@/lib/habit-colors";
 import type { Habit } from "@/lib/db/habits-queries";
 

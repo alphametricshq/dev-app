@@ -271,13 +271,6 @@ export async function getPinnedCards(limit = 10): Promise<PinnedCard[]> {
   }));
 }
 
-export async function getPinnedCardIds(): Promise<Set<string>> {
-  await initDb();
-  const c = db();
-  const r = await c.execute(`SELECT card_id FROM pinned_cards`);
-  return new Set(r.rows.map((row) => row.card_id as string));
-}
-
 /**
  * Pega pinned cards validando cada um contra o Trello. Cards que retornam 404
  * (ou estão arquivados) são removidos do banco. Erros de rede/auth não removem

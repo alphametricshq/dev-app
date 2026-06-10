@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Search, Loader2, KanbanSquare, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isDoneListName } from "@/lib/trello-hints";
 
 type Board = { id: string; name: string };
 type Card = {
@@ -13,8 +14,6 @@ type Card = {
   closed: boolean;
 };
 type List = { id: string; name: string; closed: boolean };
-
-const DONE_HINTS = ["done", "concluído", "concluido", "feito", "finalizado", "completo"];
 
 export function CardSelector({
   onClose,
@@ -77,9 +76,7 @@ export function CardSelector({
 
   // Filtra cards que não estão em listas Done e não fechados
   const doneListIds = new Set(
-    lists
-      .filter((l) => DONE_HINTS.some((h) => l.name.toLowerCase().includes(h)))
-      .map((l) => l.id),
+    lists.filter((l) => isDoneListName(l.name)).map((l) => l.id),
   );
   const lower = search.toLowerCase();
   const filteredCards = cards

@@ -28,7 +28,6 @@ export default async function TrelloPage() {
   const total = analytics.total90;
   const last7 = analytics.totalLast7;
   const activeDays = byDay.filter((d) => d.count > 0).length;
-  const avg = total > 0 ? (total / 90).toFixed(1) : "0";
   const last7Spark = (() => {
     const map = new Map(byDay.map((d) => [d.date, d.count]));
     const today = new Date();

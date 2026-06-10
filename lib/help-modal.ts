@@ -7,10 +7,6 @@ function emit() {
   for (const l of listeners) l(open);
 }
 
-export function openHelp() {
-  open = true;
-  emit();
-}
 export function closeHelp() {
   open = false;
   emit();

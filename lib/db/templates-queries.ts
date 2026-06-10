@@ -71,14 +71,3 @@ export async function deleteTemplate(id: number): Promise<void> {
   const c = db();
   await c.execute({ sql: `DELETE FROM templates WHERE id = ?`, args: [id] });
 }
-
-export async function getTemplate(id: number): Promise<Template | null> {
-  await initDb();
-  const c = db();
-  const r = await c.execute({
-    sql: `SELECT id, type, name, data, created_at FROM templates WHERE id = ?`,
-    args: [id],
-  });
-  if (r.rows.length === 0) return null;
-  return rowToTemplate(r.rows[0] as unknown as Record<string, unknown>);
-}

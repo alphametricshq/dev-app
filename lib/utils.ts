@@ -5,10 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatNumber(n: number): string {
-  return new Intl.NumberFormat("pt-BR").format(n);
-}
-
 export function formatDate(date: Date | string, pattern: "short" | "long" = "short"): string {
   const d = typeof date === "string" ? new Date(date) : date;
   if (pattern === "short") {

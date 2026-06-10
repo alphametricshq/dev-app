@@ -204,7 +204,6 @@ export async function listHabitsWithStats(): Promise<HabitWithStats[]> {
   const dayOfWeek = (today.getDay() + 6) % 7;
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - dayOfWeek);
-  const weekStartIso = isoDate(weekStart);
 
   return habits.map((h) => {
     const dates = logsByHabit.get(h.id) ?? [];
@@ -352,16 +351,4 @@ export async function getHabitsCalendar(year: number, month: number): Promise<Ha
     logs[date].push(habitId);
   }
   return { habits, logs };
-}
-
-export async function getHabitsCount(): Promise<{ active: number; total: number }> {
-  await initDb();
-  const c = db();
-  const r = await c.execute(`SELECT
-    SUM(CASE WHEN archived = 0 THEN 1 ELSE 0 END) as active,
-    COUNT(*) as total FROM habits`);
-  return {
-    active: Number(r.rows[0]?.active ?? 0),
-    total: Number(r.rows[0]?.total ?? 0),
-  };
 }

@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { KanbanSquare, X, CheckCircle2, Loader2, Send } from "lucide-react";
+import { isTodoListName } from "@/lib/trello-hints";
 
 type Board = { id: string; name: string };
 type List = { id: string; name: string; closed: boolean };
 
-const TODO_HINTS = ["to-do", "todo", "to do", "a fazer", "afazer", "backlog", "pra fazer"];
 const LAST_BOARD_KEY = "quick-task-last-board";
 
 type ElectronAPI = {
@@ -67,15 +67,10 @@ export function QuickTaskContent() {
       .finally(() => setLoadingLists(false));
   }, [selectedBoardId]);
 
-  // Detecta lista alvo: primeira que bate em TODO_HINTS, senão a primeira aberta
+  // Detecta lista alvo: primeira que bate nos hints de To-do, senão a primeira aberta
   const targetList = useMemo(() => {
-    const open = lists.filter((l) => !l.closed).sort((a, b) => {
-      // ordena pela ordem original (lib retorna sorted by pos)
-      return 0;
-    });
-    const matched = open.find((l) =>
-      TODO_HINTS.some((h) => l.name.toLowerCase().includes(h)),
-    );
+    const open = lists.filter((l) => !l.closed);
+    const matched = open.find((l) => isTodoListName(l.name));
     return matched ?? open[0] ?? null;
   }, [lists]);
 

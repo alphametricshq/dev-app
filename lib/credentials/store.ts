@@ -99,11 +99,3 @@ export function getCredential(key: keyof Credentials): string | undefined {
   const v = stored[key];
   return v == null || v === "" ? undefined : String(v);
 }
-
-export function getCredentialStatus(): Record<keyof Credentials, boolean> {
-  const status = {} as Record<keyof Credentials, boolean>;
-  for (const key of CREDENTIAL_KEYS) {
-    status[key] = !!getCredential(key);
-  }
-  return status;
-}

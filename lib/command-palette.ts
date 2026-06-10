@@ -18,11 +18,6 @@ export function closePalette() {
   emit();
 }
 
-export function togglePalette() {
-  open = !open;
-  emit();
-}
-
 export function isPaletteOpen() {
   return open;
 }
