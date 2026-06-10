@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { toast } from "@/lib/toast";
+import { localIsoDate } from "@/lib/local-date";
 import { notifyStreakWarning } from "@/lib/desktop-notifications";
 import {
   isStreakWarningEnabled,
@@ -16,7 +17,7 @@ async function check() {
   if (!isStreakWarningEnabled()) return;
   const now = new Date();
   if (now.getHours() < getStreakWarningHour()) return;
-  const todayIso = now.toISOString().slice(0, 10);
+  const todayIso = localIsoDate(now);
   if (getLastWarnedIso() === todayIso) return;
 
   try {

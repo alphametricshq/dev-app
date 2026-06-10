@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 import { toast } from "@/lib/toast";
+import { localIsoDate } from "@/lib/local-date";
 
 const STORAGE_KEY = "daily-insight-shown";
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localIsoDate();
 }
 
 export function DailyInsightTrigger() {

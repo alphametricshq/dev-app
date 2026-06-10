@@ -1,4 +1,5 @@
 import { getGithubContributions, type GithubContribDay } from "@/lib/db/queries";
+import { localIsoDate } from "@/lib/local-date";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -38,7 +39,7 @@ export type GithubAnalytics = {
 };
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 function pct(current: number, previous: number): number | null {

@@ -24,3 +24,6 @@ Thumbs.db
 server.log
 .vscode
 .idea
+
+# worktrees de agents
+.claude/worktrees/

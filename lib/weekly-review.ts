@@ -1,12 +1,13 @@
 import { getGithubContributions, getTrelloCompletedByDay, getTrelloByBoard } from "@/lib/db/queries";
 import { listHabitsWithStats } from "@/lib/db/habits-queries";
 import { XP_PER_GITHUB_CONTRIB, XP_PER_TRELLO_TASK, XP_PER_ACTIVE_DAY } from "@/lib/gamification/level";
+import { localIsoDate } from "@/lib/local-date";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 function pct(current: number, previous: number): number | null {

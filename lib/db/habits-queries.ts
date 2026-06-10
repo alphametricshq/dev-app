@@ -1,4 +1,5 @@
 import { db, initDb } from "./index";
+import { localIsoDate } from "@/lib/local-date";
 
 export type Habit = {
   id: number;
@@ -21,7 +22,7 @@ export type HabitWithStats = Habit & {
 };
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 export async function listHabits(): Promise<Habit[]> {

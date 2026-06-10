@@ -1,5 +1,6 @@
 import type { GithubContribDay } from "@/lib/db/queries";
 import { getSetting, setSetting } from "@/lib/db/queries";
+import { localIsoDate } from "@/lib/local-date";
 
 export const DEFAULT_GOALS = {
   daily: { github: 40, trello: 1 },
@@ -61,7 +62,7 @@ function pct(current: number, target: number) {
 }
 
 function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 export async function computeGoals(input: {
