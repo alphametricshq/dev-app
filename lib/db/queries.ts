@@ -95,10 +95,10 @@ export async function getTrelloCompletedByDay(days = 90): Promise<{ date: string
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT date(completed_at) as date, COUNT(*) as count
+    sql: `SELECT date(completed_at, 'localtime') as date, COUNT(*) as count
           FROM trello_tasks_completed
           WHERE completed_at >= datetime('now', ?)
-          GROUP BY date(completed_at)
+          GROUP BY date(completed_at, 'localtime')
           ORDER BY date ASC`,
     args: [`-${days} days`],
   });
@@ -130,7 +130,7 @@ export async function getTrelloCompletedByHour(days = 90): Promise<{ hour: numbe
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT CAST(strftime('%H', completed_at) AS INTEGER) as hour, COUNT(*) as count
+    sql: `SELECT CAST(strftime('%H', completed_at, 'localtime') AS INTEGER) as hour, COUNT(*) as count
           FROM trello_tasks_completed
           WHERE completed_at >= datetime('now', ?)
           GROUP BY hour
@@ -148,7 +148,7 @@ export async function getTrelloCompletedByWeekday(days = 90): Promise<{ weekday:
   const c = db();
   // strftime %w: 0=Domingo, 1=Segunda, ..., 6=Sabado
   const r = await c.execute({
-    sql: `SELECT CAST(strftime('%w', completed_at) AS INTEGER) as weekday, COUNT(*) as count
+    sql: `SELECT CAST(strftime('%w', completed_at, 'localtime') AS INTEGER) as weekday, COUNT(*) as count
           FROM trello_tasks_completed
           WHERE completed_at >= datetime('now', ?)
           GROUP BY weekday

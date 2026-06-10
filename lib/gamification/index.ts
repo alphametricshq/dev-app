@@ -1,6 +1,7 @@
 import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
 import { listHabitsWithStats } from "@/lib/db/habits-queries";
 import { getPomodoroStats } from "@/lib/db/pomodoro-queries";
+import { localIsoDate } from "@/lib/local-date";
 import { computeXp, levelFromXp, levelTitle } from "./level";
 import { evaluateBadges, type BadgeStatus } from "./badges";
 import { computeGoals, type GoalProgress } from "./goals";
@@ -40,13 +41,13 @@ function computeStreaks(contribs: { date: string; count: number }[]): {
   // Streak atual (contando do hoje pra tras)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = localIsoDate(today);
   const startOffset = (map.get(todayIso) ?? 0) > 0 ? 0 : 1;
   let current = 0;
   for (let i = startOffset; i < 365; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = localIsoDate(d);
     if ((map.get(iso) ?? 0) > 0) current++;
     else break;
   }

@@ -4,6 +4,7 @@ import {
   getTrelloCompletedByWeekday,
   getTrelloByBoard,
 } from "@/lib/db/queries";
+import { localIsoDate } from "@/lib/local-date";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -35,7 +36,7 @@ export type TrelloAnalytics = {
 };
 
 function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 function pct(current: number, previous: number): number | null {

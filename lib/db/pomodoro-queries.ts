@@ -1,4 +1,5 @@
 import { db, initDb } from "./index";
+import { localIsoDate } from "@/lib/local-date";
 
 export type PomodoroSession = {
   id: number;
@@ -12,7 +13,7 @@ export type PomodoroSession = {
 };
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 export async function recordPomodoroSession(input: {
@@ -123,7 +124,7 @@ export async function getPomodoroByHour(days: number): Promise<{ hour: number; c
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT CAST(strftime('%H', finished_at) AS INTEGER) AS hour, COUNT(*) AS count
+    sql: `SELECT CAST(strftime('%H', finished_at, 'localtime') AS INTEGER) AS hour, COUNT(*) AS count
           FROM pomodoro_sessions
           WHERE completed = 1 AND type = 'focus' AND finished_at >= datetime('now', ?)
           GROUP BY hour
@@ -137,7 +138,7 @@ export async function getPomodoroByWeekday(days: number): Promise<{ weekday: num
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT CAST(strftime('%w', finished_at) AS INTEGER) AS weekday, COUNT(*) AS count
+    sql: `SELECT CAST(strftime('%w', finished_at, 'localtime') AS INTEGER) AS weekday, COUNT(*) AS count
           FROM pomodoro_sessions
           WHERE completed = 1 AND type = 'focus' AND finished_at >= datetime('now', ?)
           GROUP BY weekday
@@ -153,12 +154,12 @@ export async function getFocusMinutesByDay(days: number): Promise<FocusByDay[]> 
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT date(finished_at) AS date,
+    sql: `SELECT date(finished_at, 'localtime') AS date,
                  COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min,
                  SUM(CASE WHEN type='focus' THEN 1 ELSE 0 END) AS sessions
           FROM pomodoro_sessions
           WHERE completed = 1 AND finished_at >= datetime('now', ?)
-          GROUP BY date(finished_at)
+          GROUP BY date(finished_at, 'localtime')
           ORDER BY date ASC`,
     args: [`-${days} days`],
   });
@@ -218,13 +219,13 @@ export async function getWeekComparison(): Promise<WeekComparison> {
   thisWeekStart.setDate(today.getDate() - dayOfWeek);
   const prevWeekStart = new Date(thisWeekStart);
   prevWeekStart.setDate(thisWeekStart.getDate() - 7);
-  const isoDateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const isoDateStr = (d: Date) => localIsoDate(d);
   const cur = await c.execute({
     sql: `SELECT
             COUNT(*) AS sessions,
             COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
           FROM pomodoro_sessions
-          WHERE completed = 1 AND date(finished_at) >= ?`,
+          WHERE completed = 1 AND date(finished_at, 'localtime') >= ?`,
     args: [isoDateStr(thisWeekStart)],
   });
   const prev = await c.execute({
@@ -232,7 +233,7 @@ export async function getWeekComparison(): Promise<WeekComparison> {
             COUNT(*) AS sessions,
             COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
           FROM pomodoro_sessions
-          WHERE completed = 1 AND date(finished_at) >= ? AND date(finished_at) < ?`,
+          WHERE completed = 1 AND date(finished_at, 'localtime') >= ? AND date(finished_at, 'localtime') < ?`,
     args: [isoDateStr(prevWeekStart), isoDateStr(thisWeekStart)],
   });
   const currentWeekMin = Number(cur.rows[0]?.focus_min ?? 0);
@@ -258,10 +259,10 @@ export async function getPomodoroByDay(days: number): Promise<{ date: string; co
   await initDb();
   const c = db();
   const r = await c.execute({
-    sql: `SELECT date(finished_at) AS date, COUNT(*) AS count
+    sql: `SELECT date(finished_at, 'localtime') AS date, COUNT(*) AS count
           FROM pomodoro_sessions
           WHERE completed = 1 AND finished_at >= datetime('now', ?)
-          GROUP BY date(finished_at)
+          GROUP BY date(finished_at, 'localtime')
           ORDER BY date ASC`,
     args: [`-${days} days`],
   });
@@ -308,7 +309,7 @@ export async function getPomodoroStats(): Promise<PomodoroStats> {
             COUNT(*) AS sessions,
             COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
           FROM pomodoro_sessions
-          WHERE completed = 1 AND date(finished_at) = ?`,
+          WHERE completed = 1 AND date(finished_at, 'localtime') = ?`,
     args: [todayIso],
   });
   const todaySessions = Number(todayR.rows[0]?.sessions ?? 0);
@@ -320,7 +321,7 @@ export async function getPomodoroStats(): Promise<PomodoroStats> {
             COUNT(*) AS sessions,
             COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
           FROM pomodoro_sessions
-          WHERE completed = 1 AND date(finished_at) >= ?`,
+          WHERE completed = 1 AND date(finished_at, 'localtime') >= ?`,
     args: [weekStartIso],
   });
   const weekSessions = Number(weekR.rows[0]?.sessions ?? 0);
@@ -328,12 +329,12 @@ export async function getPomodoroStats(): Promise<PomodoroStats> {
 
   // Por dia (últimos 30 dias)
   const byDayR = await c.execute(
-    `SELECT date(finished_at) AS date,
+    `SELECT date(finished_at, 'localtime') AS date,
             COUNT(*) AS sessions,
             COALESCE(SUM(CASE WHEN type='focus' THEN duration_min ELSE 0 END), 0) AS focus_min
      FROM pomodoro_sessions
      WHERE completed = 1 AND finished_at >= datetime('now', '-30 days')
-     GROUP BY date(finished_at)
+     GROUP BY date(finished_at, 'localtime')
      ORDER BY date ASC`,
   );
   const byDay = byDayR.rows.map((row) => ({

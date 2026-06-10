@@ -94,11 +94,11 @@ export async function listJournalEntries(opts?: {
     args.push(`%,${opts.tag},%`);
   }
   if (opts?.fromDate) {
-    wheres.push("date(created_at) >= ?");
+    wheres.push("date(created_at, 'localtime') >= ?");
     args.push(opts.fromDate);
   }
   if (opts?.toDate) {
-    wheres.push("date(created_at) <= ?");
+    wheres.push("date(created_at, 'localtime') <= ?");
     args.push(opts.toDate);
   }
   const whereSql = wheres.length > 0 ? `WHERE ${wheres.join(" AND ")}` : "";
@@ -153,7 +153,7 @@ export async function getJournalStats(): Promise<JournalStats> {
 
   // Entries por mês (últimos 12)
   const byMonthR = await c.execute(
-    `SELECT strftime('%Y-%m', created_at) as ym, COUNT(*) as n
+    `SELECT strftime('%Y-%m', created_at, 'localtime') as ym, COUNT(*) as n
      FROM journal_entries
      WHERE created_at >= date('now', '-12 months')
      GROUP BY ym

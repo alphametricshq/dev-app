@@ -1,5 +1,7 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
+
 const ENABLED_KEY = "streak-warning-enabled";
 const HOUR_KEY = "streak-warning-hour";
 const LAST_WARNED_KEY = "streak-warning-last";
@@ -39,6 +41,5 @@ export function getLastWarnedIso(): string | null {
 
 export function markWarnedToday() {
   if (typeof window === "undefined") return;
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem(LAST_WARNED_KEY, today);
+  localStorage.setItem(LAST_WARNED_KEY, localIsoDate());
 }

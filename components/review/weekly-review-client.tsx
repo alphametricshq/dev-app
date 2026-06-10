@@ -17,6 +17,7 @@ import {
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { cn } from "@/lib/utils";
+import { localIsoDate } from "@/lib/local-date";
 import type { WeeklyReview } from "@/lib/weekly-review";
 
 export function WeeklyReviewClient() {
@@ -226,7 +227,7 @@ function DailyBreakdown({ review }: { review: WeeklyReview }) {
           const totalH = ((d.gh + d.tr) / max) * 100;
           const ghH = max > 0 ? (d.gh / max) * 100 : 0;
           const trH = max > 0 ? (d.tr / max) * 100 : 0;
-          const isToday = d.date === new Date().toISOString().slice(0, 10);
+          const isToday = d.date === localIsoDate();
           return (
             <div key={d.date} className={cn("flex flex-col items-center gap-2", isToday && "font-semibold")}>
               <div className="flex h-32 w-full flex-col-reverse overflow-hidden rounded-lg bg-bg-subtle">

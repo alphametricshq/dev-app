@@ -6,6 +6,7 @@ import {
 } from "@/lib/db/queries";
 import { getPomodoroByHour, getPomodoroByWeekday } from "@/lib/db/pomodoro-queries";
 import { db, initDb } from "@/lib/db";
+import { localIsoDate } from "@/lib/local-date";
 
 const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -143,7 +144,7 @@ export async function computePatterns(): Promise<Pattern[]> {
       for (let i = 0; i < 30; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const iso = d.toISOString().slice(0, 10);
+        const iso = localIsoDate(d);
         if (set.has(iso)) done++;
       }
       void info;

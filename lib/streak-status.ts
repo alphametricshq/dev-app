@@ -6,8 +6,10 @@ export type StreakStatus = {
   shouldWarn: boolean;
 };
 
+import { localIsoDate } from "@/lib/local-date";
+
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 function computeCurrentStreak(contribs: { date: string; count: number }[]): number {

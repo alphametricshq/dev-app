@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { logHabit, unlogHabit } from "@/lib/db/habits-queries";
+import { localIsoDate } from "@/lib/local-date";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isoToday(): string {
-  return new Date().toISOString().slice(0, 10);
+  // Data LOCAL — toISOString() (UTC) gravava o hábito no dia seguinte após as 21h
+  return localIsoDate();
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {

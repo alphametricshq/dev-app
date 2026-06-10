@@ -2,6 +2,7 @@
 
 import { toast } from "@/lib/toast";
 import { playGoal, playLevelUp } from "@/lib/sounds";
+import { localIsoDate } from "@/lib/local-date";
 import { notifyGoalCompleted, notifyLevelUp } from "@/lib/desktop-notifications";
 
 // Pub/sub pra burst de confete on-demand
@@ -58,7 +59,7 @@ export function markCelebrated(key: string): void {
 // ===== Helpers de chave =====
 
 function isoDate(d = new Date()): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 function isoWeek(d = new Date()): string {

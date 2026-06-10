@@ -4,6 +4,7 @@ import { getPomodoroStats } from "@/lib/db/pomodoro-queries";
 import { getGamificationSummary } from "@/lib/gamification";
 import { getGithubAnalytics } from "@/lib/analytics/github";
 import { getTrelloAnalytics } from "@/lib/analytics/trello";
+import { localIsoDate } from "@/lib/local-date";
 
 export type DailyInsight = {
   title: string;
@@ -15,7 +16,7 @@ export type DailyInsight = {
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 export async function computeDailyInsight(): Promise<DailyInsight | null> {
