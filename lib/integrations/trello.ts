@@ -35,7 +35,10 @@ async function trelloFetch<T>(path: string, params: Record<string, string | numb
   url.searchParams.set("token", token);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "dashboard-pessoal" } });
+  const res = await fetch(url.toString(), {
+    headers: { "User-Agent": "dashboard-pessoal" },
+    signal: AbortSignal.timeout(20_000),
+  });
   if (!res.ok) {
     throw new Error(`Trello API ${res.status} (${path}): ${await res.text()}`);
   }

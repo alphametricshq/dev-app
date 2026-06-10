@@ -3,6 +3,7 @@ import { findTodoList } from "@/lib/integrations/trello-todo";
 import { fetchProjectItems, type ProjectItem } from "@/lib/integrations/github-project";
 import { getLinkedIssueKeys, linkIssue } from "@/lib/db/issues-queries";
 import { getSetting, setSetting } from "@/lib/db/queries";
+import { withSyncLock } from "@/lib/sync-lock";
 import { getCredential } from "@/lib/credentials/store";
 
 const SETTING_KEY = "project_to_trello";
@@ -85,6 +86,11 @@ export async function baselineProject(): Promise<{ baselined: number }> {
 }
 
 export async function syncProjectToTrello(): Promise<{ created: number; skipped: number }> {
+  // Lock impede execuções concorrentes (auto-sync + manual) de duplicar cards
+  return withSyncLock("project-to-trello", { created: 0, skipped: 0 }, () => doSync());
+}
+
+async function doSync(): Promise<{ created: number; skipped: number }> {
   const cfg = await getProjectSyncConfig();
   if (!cfg.enabled) return { created: 0, skipped: 0 };
 

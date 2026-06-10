@@ -46,6 +46,7 @@ export async function fetchAssignedIssues(): Promise<AssignedIssue[]> {
         "User-Agent": "dashboard-pessoal",
         "X-GitHub-Api-Version": "2022-11-28",
       },
+      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) {
       throw new Error(`GitHub issues ${res.status}: ${await res.text()}`);

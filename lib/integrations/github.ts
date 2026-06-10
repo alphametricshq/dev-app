@@ -71,6 +71,7 @@ export async function fetchGithubContributions(opts?: {
       "Content-Type": "application/json",
       "User-Agent": "dashboard-pessoal",
     },
+    signal: AbortSignal.timeout(20_000),
     body: JSON.stringify({
       query,
       variables: { login: username, from: from.toISOString(), to: to.toISOString() },
