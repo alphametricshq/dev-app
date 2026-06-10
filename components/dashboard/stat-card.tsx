@@ -26,7 +26,7 @@ export function StatCard({
   }[accent];
 
   const sparklineColor = {
-    default: "hsl(265 85% 65%)",
+    default: "hsl(var(--accent))",
     github: "hsl(150 60% 50%)",
     trello: "hsl(40 90% 60%)",
   }[accent];

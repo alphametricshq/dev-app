@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { habitColorCss } from "@/lib/habit-colors";
 
 type Habit = { id: number; name: string; emoji: string; color: string };
 type CalendarData = {
@@ -27,15 +28,6 @@ const MONTHS_PT = [
   "Dezembro",
 ];
 const DAY_LABELS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-
-const COLOR_HEX: Record<string, string> = {
-  accent: "var(--accent)",
-  success: "hsl(155 60% 50%)",
-  warning: "hsl(38 90% 55%)",
-  danger: "hsl(0 70% 60%)",
-  blue: "hsl(200 80% 60%)",
-  pink: "hsl(320 70% 65%)",
-};
 
 function isoLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -102,7 +94,7 @@ export function HabitsCalendarView() {
   const habitColor = (habitId: number) => {
     const h = data?.habits.find((x) => x.id === habitId);
     if (!h) return "#6b7280";
-    return COLOR_HEX[h.color] ?? COLOR_HEX.accent;
+    return habitColorCss(h.color);
   };
   const habitInfo = (habitId: number) => data?.habits.find((x) => x.id === habitId);
 
@@ -155,7 +147,7 @@ export function HabitsCalendarView() {
             <div key={h.id} className="flex items-center gap-1.5">
               <span
                 className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: COLOR_HEX[h.color] ?? COLOR_HEX.accent }}
+                style={{ backgroundColor: habitColorCss(h.color) }}
               />
               <span className="text-fg-muted">
                 {h.emoji} {h.name}

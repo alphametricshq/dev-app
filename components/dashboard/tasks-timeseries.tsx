@@ -86,7 +86,7 @@ export function TasksTimeseries({
             {dailyTarget != null && dailyTarget > 0 && (
               <ReferenceLine
                 y={dailyTarget}
-                stroke="hsl(265 85% 65%)"
+                stroke="hsl(var(--accent))"
                 strokeDasharray="4 4"
                 strokeOpacity={0.6}
               />
