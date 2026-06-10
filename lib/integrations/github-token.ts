@@ -97,6 +97,7 @@ export async function projectGraphql<T>(
         "User-Agent": "dashboard-pessoal",
       },
       body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) {
       lastErr = `HTTP ${res.status}: ${await res.text()}`;

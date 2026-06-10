@@ -62,6 +62,7 @@ async function call<T>(
   const res = await fetch(url.toString(), {
     method,
     headers: { "User-Agent": "dashboard-pessoal", Accept: "application/json" },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) {
     const text = await res.text();

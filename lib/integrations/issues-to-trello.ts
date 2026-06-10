@@ -3,6 +3,7 @@ import { findTodoList } from "@/lib/integrations/trello-todo";
 import { fetchAssignedIssues } from "@/lib/integrations/github-issues";
 import { getLinkedIssueKeys, linkIssue } from "@/lib/db/issues-queries";
 import { getSetting, setSetting } from "@/lib/db/queries";
+import { withSyncLock } from "@/lib/sync-lock";
 
 const SETTING_KEY = "issues_to_trello";
 
@@ -56,9 +57,14 @@ export async function baselineIssues(): Promise<{ baselined: number }> {
 
 /**
  * Cria cards no Trello pros issues atribuídos ainda não convertidos.
- * Só roda se a integração estiver habilitada.
+ * Só roda se a integração estiver habilitada. Lock impede execuções
+ * concorrentes (auto-sync + manual) de duplicar cards.
  */
 export async function syncIssuesToTrello(): Promise<{ created: number; skipped: number }> {
+  return withSyncLock("issues-to-trello", { created: 0, skipped: 0 }, () => doSync());
+}
+
+async function doSync(): Promise<{ created: number; skipped: number }> {
   const cfg = await getIssuesSyncConfig();
   if (!cfg.enabled) return { created: 0, skipped: 0 };
 
