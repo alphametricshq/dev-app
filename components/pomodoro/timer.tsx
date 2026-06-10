@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Play, Pause, RotateCcw, SkipForward, Brain, Coffee, KanbanSquare, Link2Off, Maximize2, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 import {
   start,
   pause,
@@ -70,9 +71,14 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
     complete().then(() => onSessionComplete());
   }
 
-  function changeType(t: SessionType) {
+  async function changeType(t: SessionType) {
     if (!idle) {
-      if (!confirm("Tem uma sessão em andamento — descartar?")) return;
+      const ok = await confirmDialog({
+        title: "Tem uma sessão em andamento — descartar?",
+        confirmLabel: "Descartar",
+        danger: true,
+      });
+      if (!ok) return;
       reset();
     }
     configureSession(t, PomodoroDefaults[t]);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { EntryEditor } from "./entry-editor";
+import { confirmDialog } from "@/lib/dialogs";
 import type { JournalEntry } from "@/lib/db/journal-queries";
 
 export function EntryCard({
@@ -54,8 +55,13 @@ export function EntryCard({
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => {
-              if (confirm("Apagar essa nota?")) onDelete(entry.id);
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: "Apagar essa nota?",
+                confirmLabel: "Apagar",
+                danger: true,
+              });
+              if (ok) onDelete(entry.id);
             }}
             className="rounded p-1 text-fg-subtle hover:bg-danger/20 hover:text-danger"
             aria-label="Apagar"

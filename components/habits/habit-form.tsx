@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
 import type { Template, HabitTemplateData } from "@/lib/db/templates-queries";
 import { toast } from "@/lib/toast";
+import { promptDialog } from "@/lib/dialogs";
 
 const EMOJI_PRESETS = ["✨", "🏃", "📖", "💧", "🧘", "💪", "😴", "🍎", "🎵", "✍️", "💼", "🌱"];
 const COLOR_PRESETS: { id: string; class: string }[] = [
@@ -60,7 +61,13 @@ export function HabitForm({
 
   async function saveAsTemplate() {
     if (!name.trim()) return;
-    const tplName = prompt("Nome do template:", name);
+    const tplName = await promptDialog({
+      title: "Salvar como template",
+      description: "Esse hábito vai ficar disponível pra reaproveitar depois.",
+      placeholder: "Nome do template",
+      initial: name,
+      submitLabel: "Salvar",
+    });
     if (!tplName?.trim()) return;
     try {
       const res = await fetch("/api/templates", {

@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/sidebar";
 import { UpdateBanner } from "@/components/update-banner";
 import { Toaster } from "@/components/toast/toaster";
+import { DialogHost } from "@/components/ui/dialog-host";
 import { FloatingTimer } from "@/components/pomodoro/floating-timer";
 import { CommandPalette } from "@/components/command/command-palette";
 import { ShortcutsProvider } from "@/components/shortcuts-provider";
@@ -19,6 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <FloatingTimer />
       <UpdateBanner />
       <Toaster />
+      <DialogHost />
       <CommandPalette />
       <ShortcutsProvider />
       <ShortcutsHelp />

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckSquare, Plus, Trash2, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { confirmDialog } from "@/lib/dialogs";
 import type { TrelloChecklist, TrelloCheckItem } from "@/lib/integrations/trello-api";
 
 export function CardChecklists({ cardId }: { cardId: string }) {
@@ -12,7 +13,6 @@ export function CardChecklists({ cardId }: { cardId: string }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [autoFocusItemForId, setAutoFocusItemForId] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -56,17 +56,17 @@ export function CardChecklists({ cardId }: { cardId: string }) {
     }
   }
 
-  function requestDeleteChecklist(id: string, name: string) {
-    setPendingDelete({ id, name });
-  }
-
-  async function confirmDeleteChecklist() {
-    const target = pendingDelete;
-    setPendingDelete(null);
-    if (!target) return;
-    setChecklists((prev) => prev.filter((c) => c.id !== target.id));
+  async function handleDeleteChecklist(id: string, name: string) {
+    const ok = await confirmDialog({
+      title: "Apagar checklist?",
+      description: `"${name}" e todos os itens dentro serão apagados.`,
+      confirmLabel: "Apagar",
+      danger: true,
+    });
+    if (!ok) return;
+    setChecklists((prev) => prev.filter((c) => c.id !== id));
     try {
-      const r = await fetch(`/api/trello/checklists/${target.id}`, { method: "DELETE" });
+      const r = await fetch(`/api/trello/checklists/${id}`, { method: "DELETE" });
       const d = await r.json();
       if (!d?.ok) throw new Error(d?.error);
     } catch (e) {
@@ -227,69 +227,10 @@ export function CardChecklists({ cardId }: { cardId: string }) {
             onAddItem={(name) => handleAddItem(cl.id, name)}
             onToggleItem={(item) => handleToggleItem(cl, item)}
             onDeleteItem={(itemId) => handleDeleteItem(cl.id, itemId)}
-            onDeleteChecklist={() => requestDeleteChecklist(cl.id, cl.name)}
+            onDeleteChecklist={() => handleDeleteChecklist(cl.id, cl.name)}
           />
         );
       })}
-
-      {pendingDelete && (
-        <ConfirmDeleteModal
-          name={pendingDelete.name}
-          onConfirm={confirmDeleteChecklist}
-          onCancel={() => setPendingDelete(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function ConfirmDeleteModal({
-  name,
-  onConfirm,
-  onCancel,
-}: {
-  name: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onCancel();
-      } else if (e.key === "Enter") {
-        e.stopPropagation();
-        onConfirm();
-      }
-    }
-    document.addEventListener("keydown", onKey, true);
-    return () => document.removeEventListener("keydown", onKey, true);
-  }, [onCancel, onConfirm]);
-
-  return (
-    <div
-      onClick={(e) => e.target === e.currentTarget && onCancel()}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
-    >
-      <div className="w-full max-w-sm rounded-xl border border-border bg-bg-card p-4 shadow-2xl">
-        <h3 className="text-sm font-semibold text-fg">Apagar checklist?</h3>
-        <p className="mt-1 text-xs text-fg-muted">
-          &ldquo;{name}&rdquo; e todos os itens dentro serão apagados.
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onCancel} className="btn-secondary py-1.5 text-xs">
-            Cancelar
-          </button>
-          <button
-            onClick={onConfirm}
-            autoFocus
-            className="btn flex items-center gap-1.5 border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs text-danger hover:bg-danger/20"
-          >
-            <Trash2 className="h-3 w-3" />
-            Apagar
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

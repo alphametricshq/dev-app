@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Trash2, AlignLeft, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 import type { TrelloCardItem } from "@/lib/integrations/trello-api";
 import { labelBg } from "@/lib/trello-labels";
 
@@ -112,9 +113,14 @@ export function KanbanCard({
           )}
           {onDelete && (
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                if (confirm(`Apagar "${card.name}"?`)) onDelete(card.id);
+                const ok = await confirmDialog({
+                  title: `Apagar "${card.name}"?`,
+                  confirmLabel: "Apagar",
+                  danger: true,
+                });
+                if (ok) onDelete(card.id);
               }}
               onPointerDown={(e) => e.stopPropagation()}
               className="rounded p-1 text-fg-subtle opacity-0 transition-opacity hover:bg-danger/20 hover:text-danger group-hover:opacity-100"

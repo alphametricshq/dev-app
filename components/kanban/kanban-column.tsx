@@ -8,6 +8,7 @@ import { KanbanCard } from "./kanban-card";
 import type { TrelloListItem, TrelloCardItem } from "@/lib/integrations/trello-api";
 import type { Template, CardTemplateData } from "@/lib/db/templates-queries";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 
 export function KanbanColumn({
   list,
@@ -146,11 +147,15 @@ export function KanbanColumn({
                 Renomear
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Arquivar lista "${list.name}"?`)) {
-                    onArchiveList(list.id);
-                  }
+                onClick={async () => {
                   setMenuOpen(false);
+                  const ok = await confirmDialog({
+                    title: `Arquivar lista "${list.name}"?`,
+                    description: "A lista e os cards dela saem do quadro (continuam no Trello).",
+                    confirmLabel: "Arquivar",
+                    danger: true,
+                  });
+                  if (ok) onArchiveList(list.id);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg-muted hover:bg-danger/20 hover:text-danger"
               >

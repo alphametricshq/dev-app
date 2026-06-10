@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, Pencil, Archive, Flame, BarChart3, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 import type { HabitWithStats } from "@/lib/db/habits-queries";
 import { HabitHistoryModal } from "./habit-history-modal";
 
@@ -94,8 +95,14 @@ export function HabitCard({
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => {
-              if (confirm(`Arquivar "${habit.name}"?`)) onArchive(habit);
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: `Arquivar "${habit.name}"?`,
+                description: "O histórico fica guardado, mas o hábito some da lista.",
+                confirmLabel: "Arquivar",
+                danger: true,
+              });
+              if (ok) onArchive(habit);
             }}
             className="rounded p-1 text-fg-subtle hover:bg-danger/20 hover:text-danger"
             aria-label="Arquivar"

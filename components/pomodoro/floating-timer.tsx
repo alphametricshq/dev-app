@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Play, Pause, X, Brain, Coffee, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 import { pause, resume, stop, PomodoroLabels, type SessionType } from "@/lib/pomodoro-store";
 import { usePomodoroState, useRemainingSeconds, useProgressPct } from "@/lib/use-pomodoro";
 
@@ -47,8 +48,12 @@ export function FloatingTimer() {
   const display = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   const running = state.status === "running";
 
-  function handleStop() {
-    if (confirm("Parar a sessão atual?")) stop();
+  async function handleStop() {
+    const ok = await confirmDialog({
+      title: "Parar a sessão atual?",
+      confirmLabel: "Parar",
+    });
+    if (ok) stop();
   }
 
   function openOverlay() {

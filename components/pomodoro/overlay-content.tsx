@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Play, Pause, X, Brain, Coffee, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/dialogs";
 import type { PomodoroState, SessionType } from "@/lib/pomodoro-store";
 
 type ElectronWindow = Window & {
@@ -119,8 +120,12 @@ export function OverlayContent() {
           {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="ml-0.5 h-3.5 w-3.5" />}
         </button>
         <button
-          onClick={() => {
-            if (confirm("Parar a sessão atual?")) ctl("stop");
+          onClick={async () => {
+            const ok = await confirmDialog({
+              title: "Parar a sessão atual?",
+              confirmLabel: "Parar",
+            });
+            if (ok) ctl("stop");
           }}
           className="flex h-7 w-7 items-center justify-center rounded-full text-fg-muted hover:bg-danger/15 hover:text-danger"
           aria-label="Parar"
