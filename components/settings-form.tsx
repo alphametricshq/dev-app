@@ -205,7 +205,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
       </section>
 
       {/* Footer */}
-      <div className="sticky bottom-0 -mx-8 flex items-center gap-3 border-t border-border bg-bg px-8 py-3">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => setShowSecrets((s) => !s)}
@@ -216,7 +216,7 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
         </button>
         <button type="submit" disabled={saving} className="btn-primary ml-auto">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Salvando..." : "Salvar"}
+          {saving ? "Salvando..." : "Salvar credenciais"}
         </button>
       </div>
 

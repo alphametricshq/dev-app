@@ -27,7 +27,7 @@ export function FocusPageClient() {
   const [sessions, setSessions] = useState<PomodoroSession[]>([]);
   const [stats, setStats] = useState<PomodoroStats | null>(null);
   const [advanced, setAdvanced] = useState<AdvancedStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const pomodoro = usePomodoroState();
   const lastStatusRef = useRef(pomodoro?.status);
 
@@ -46,8 +46,8 @@ export function FocusPageClient() {
     lastStatusRef.current = current;
   }, [pomodoro?.status]);
 
+  // Refreshes pós-sessão acontecem em background, sem desmontar a página
   async function refresh() {
-    setLoading(true);
     try {
       const [resStats, resAdv] = await Promise.all([
         fetch("/api/pomodoro"),
@@ -67,11 +67,11 @@ export function FocusPageClient() {
         });
       }
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
   }
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex h-[400px] items-center justify-center text-fg-muted">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />

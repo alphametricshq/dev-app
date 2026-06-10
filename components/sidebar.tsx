@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Github, Trello, Settings, Sparkles, KanbanSquare, Trophy, Repeat, CalendarDays, Brain, BookOpen, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import pkg from "@/package.json";
 
 const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
@@ -19,8 +21,51 @@ const NAV = [
   { href: "/settings", label: "Configurações", icon: Settings },
 ];
 
+type SyncIndicator = {
+  configured: boolean;
+  lastSync: string | null;
+  lastStatus: "success" | "error" | null;
+};
+
 export function Sidebar() {
   const pathname = usePathname();
+  const [sync, setSync] = useState<SyncIndicator | null>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/sync/status");
+        const data = await res.json();
+        if (!cancel && data?.ok) {
+          setSync({
+            configured: !!data.configured,
+            lastSync: data.lastSync ?? null,
+            lastStatus: data.lastStatus ?? null,
+          });
+        }
+      } catch {
+        // silencioso — mantém o último estado conhecido
+      }
+    }
+    load();
+    const id = setInterval(load, 5 * 60 * 1000);
+    return () => {
+      cancel = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  const syncError = sync?.lastStatus === "error";
+  const syncOff = sync ? !sync.configured : false;
+  const syncLabel = syncOff
+    ? "Sync não configurado"
+    : syncError
+      ? "Sync com erro"
+      : "Auto-sync ativo";
+  const syncTitle = sync?.lastSync
+    ? `Último sync: ${new Date(sync.lastSync).toLocaleString("pt-BR")}`
+    : undefined;
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-border bg-bg-subtle">
@@ -60,17 +105,29 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" title={syncTitle}>
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+            {!syncOff && (
+              <span
+                className={cn(
+                  "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
+                  syncError ? "bg-danger" : "bg-success",
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "relative inline-flex h-2 w-2 rounded-full",
+                syncOff ? "bg-fg-subtle" : syncError ? "bg-danger" : "bg-success",
+              )}
+            />
           </span>
-          <span className="text-[11px] text-fg-muted">Auto-sync ativo</span>
+          <span className="text-[11px] text-fg-muted">{syncLabel}</span>
         </div>
         <div className="mt-1.5 flex items-center gap-2 text-[10px] text-fg-subtle">
           <kbd className="rounded border border-border bg-bg-card px-1 font-mono">?</kbd>
           <span>atalhos</span>
-          <span className="ml-auto opacity-60">v0.1</span>
+          <span className="ml-auto opacity-60">v{pkg.version}</span>
         </div>
       </div>
     </aside>
