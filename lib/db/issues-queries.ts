@@ -16,6 +16,20 @@ export async function getLinkedIssueKeys(): Promise<Set<string>> {
   return new Set(r.rows.map((row) => row.issue_key as string));
 }
 
+/**
+ * URLs de issues já linkadas (qualquer integração). Usado pra dedupe
+ * cruzado: o mesmo issue pode chegar via Issues→Trello (key repo#N) e
+ * via Project→Trello (key project:ITEMID) — sem isso viram 2 cards.
+ */
+export async function getLinkedIssueUrls(): Promise<Set<string>> {
+  await initDb();
+  const c = db();
+  const r = await c.execute(
+    `SELECT issue_url FROM issue_card_links WHERE issue_url IS NOT NULL AND issue_url != ''`,
+  );
+  return new Set(r.rows.map((row) => row.issue_url as string));
+}
+
 export async function linkIssue(input: {
   issueKey: string;
   issueUrl?: string | null;
