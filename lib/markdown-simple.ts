@@ -19,8 +19,15 @@ function inline(text: string): string {
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   // italic *...*  (depois do bold)
   s = s.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
-  // link [text](url)
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-accent underline">$1</a>');
+  // link [text](url) — só esquemas seguros viram href; javascript:/data:
+  // etc. renderizam como texto (o preview roda em dangerouslySetInnerHTML)
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, url: string) => {
+    const trimmed = url.trim();
+    if (/^(https?:\/\/|mailto:)/i.test(trimmed)) {
+      return `<a href="${trimmed}" class="text-accent underline" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    }
+    return `${label} (${trimmed})`;
+  });
   return s;
 }
 
