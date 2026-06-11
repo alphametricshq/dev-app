@@ -275,10 +275,15 @@ export async function getPinnedCards(limit = 10): Promise<PinnedCard[]> {
  * Pega pinned cards validando cada um contra o Trello. Cards que retornam 404
  * (ou estão arquivados) são removidos do banco. Erros de rede/auth não removem
  * — preservam o pin. Retorna só os pins válidos.
+ *
+ * Valida só limit + margem (não o catálogo todo): essa função roda no render
+ * da home e cada validação é um fetch ao Trello — validar 100 pins em série
+ * atrasava a página inteira sem necessidade.
  */
 export async function getValidatedPinnedCards(limit = 10): Promise<PinnedCard[]> {
   const { cardExists } = await import("@/lib/integrations/trello-api");
-  const all = await getPinnedCards(100);
+  // margem de 3 cobre o caso de alguns dos primeiros estarem deletados
+  const all = await getPinnedCards(limit + 3);
   if (all.length === 0) return [];
   const checks = await Promise.all(
     all.map(async (p) => {
