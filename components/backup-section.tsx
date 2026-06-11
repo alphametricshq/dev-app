@@ -1,5 +1,6 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
 import { useRef, useState } from "react";
 import { Database, Download, Upload, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -17,7 +18,7 @@ export function BackupSection() {
       const res = await fetch("/api/backup/export");
       if (!res.ok) throw new Error("Erro ao exportar");
       const blob = await res.blob();
-      const filename = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      const filename = `dashboard-backup-${localIsoDate()}.json`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

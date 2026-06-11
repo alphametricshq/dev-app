@@ -1,3 +1,4 @@
+import { localIsoDate } from "@/lib/local-date";
 import { Topbar } from "@/components/topbar";
 import { TasksTimeseries } from "@/components/dashboard/tasks-timeseries";
 import { BoardsBreakdown } from "@/components/dashboard/boards-breakdown";
@@ -36,7 +37,7 @@ export default async function TrelloPage() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      result.push(map.get(d.toISOString().slice(0, 10)) ?? 0);
+      result.push(map.get(localIsoDate(d)) ?? 0);
     }
     return result;
   })();

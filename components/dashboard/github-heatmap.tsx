@@ -1,5 +1,6 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
 import { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { GithubContribDay } from "@/lib/db/queries";
@@ -47,7 +48,7 @@ export function GithubHeatmap({ days }: { days: GithubContribDay[] }) {
         if (cursor > today) {
           week.push(null);
         } else {
-          const iso = cursor.toISOString().slice(0, 10);
+          const iso = localIsoDate(cursor);
           const day = byDate.get(iso) ?? { date: iso, count: 0, level: 0 };
           week.push(day);
           total += day.count;

@@ -1,5 +1,6 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
 import { useMemo } from "react";
 import {
   AreaChart,
@@ -97,7 +98,7 @@ function fillDays(data: FocusByDay[], days: number): FocusByDay[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = localIsoDate(d);
     const existing = map.get(iso);
     result.push(existing ?? { date: iso, focus_min: 0, sessions: 0 });
   }

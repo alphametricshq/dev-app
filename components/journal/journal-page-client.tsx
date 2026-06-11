@@ -1,5 +1,6 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
 import { useEffect, useRef, useState } from "react";
 import { Search, Loader2, BookOpen, X, Download } from "lucide-react";
 import { EntryEditor } from "./entry-editor";
@@ -54,7 +55,7 @@ export function JournalPageClient() {
         const days = scope === "30d" ? 30 : 90;
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const cutoffIso = cutoff.toISOString().slice(0, 10);
+        const cutoffIso = localIsoDate(cutoff);
         payload = all.filter((e) => e.created_at >= cutoffIso);
         subtitle = `Últimos ${days} dias`;
       }
