@@ -20,6 +20,19 @@ let isQuitting = false;
 let serverProcess: ChildProcess | null = null;
 let serverUrl: string = DEV_URL;
 
+// Em dev o Next pode subir em outra porta (3001+ quando a 3000 está ocupada).
+// As janelas secundárias derivam a base da URL que a mainWindow carregou de
+// fato, em vez de confiar no DEV_URL fixo.
+function currentBaseUrl(): string {
+  try {
+    const u = mainWindow?.webContents.getURL();
+    if (u && /^https?:/.test(u)) return new URL(u).origin;
+  } catch {
+    // cai pro serverUrl
+  }
+  return serverUrl;
+}
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -158,7 +171,7 @@ function createOverlayWindow() {
     mainWindow?.webContents.send("pomodoro-overlay-closed");
   });
 
-  overlayWindow.loadURL(`${serverUrl}/pomodoro-overlay`).then(() => {
+  overlayWindow.loadURL(`${currentBaseUrl()}/pomodoro-overlay`).then(() => {
     overlayWindow?.show();
   });
 }
@@ -209,7 +222,7 @@ function createQuickCaptureWindow() {
     }
   });
 
-  quickCaptureWindow.loadURL(`${serverUrl}/quick-capture`).then(() => {
+  quickCaptureWindow.loadURL(`${currentBaseUrl()}/quick-capture`).then(() => {
     quickCaptureWindow?.show();
     quickCaptureWindow?.focus();
   });
@@ -269,7 +282,7 @@ function createQuickTaskWindow() {
     }
   });
 
-  quickTaskWindow.loadURL(`${serverUrl}/quick-task`).then(() => {
+  quickTaskWindow.loadURL(`${currentBaseUrl()}/quick-task`).then(() => {
     quickTaskWindow?.show();
     quickTaskWindow?.focus();
   });
