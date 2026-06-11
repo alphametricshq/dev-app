@@ -12,8 +12,10 @@ import {
   complete,
   configureSession,
   setSessionCard,
+  setAutoCycle,
   PomodoroLabels,
   PomodoroDefaults,
+  CYCLE_LENGTH,
   type SessionType,
 } from "@/lib/pomodoro-store";
 import { usePomodoroState, useRemainingSeconds, useProgressPct } from "@/lib/use-pomodoro";
@@ -212,6 +214,36 @@ export function PomodoroTimer({ onSessionComplete }: { onSessionComplete: () => 
             {min}min
           </button>
         ))}
+      </div>
+
+      {/* Ciclos automáticos */}
+      <div className="flex items-center gap-3 text-xs text-fg-muted">
+        <button
+          onClick={() => setAutoCycle(!state.autoCycle)}
+          className={cn(
+            "rounded-full border px-2.5 py-0.5 transition-colors",
+            state.autoCycle
+              ? "border-accent bg-accent/15 text-accent"
+              : "border-border hover:border-border-strong",
+          )}
+          title="Encadeia automaticamente: foco → pausa curta → foco... pausa longa após o 4º foco"
+        >
+          🔁 Ciclos
+        </button>
+        {state.autoCycle && (
+          <div className="flex items-center gap-1.5" title={`${Math.min(state.cycleIndex, CYCLE_LENGTH)}/${CYCLE_LENGTH} focos do ciclo`}>
+            {Array.from({ length: CYCLE_LENGTH }).map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-2 w-2 rounded-full transition-colors",
+                  i < state.cycleIndex ? "bg-accent" : "bg-bg-hover",
+                  i === state.cycleIndex && state.type === "focus" && !idle && "ring-1 ring-accent/60",
+                )}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Vinculo com card */}

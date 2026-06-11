@@ -16,7 +16,13 @@ export type PomodoroState = {
   pausedTotalMs: number;
   cardId: string | null;
   cardName: string | null;
+  // Ciclos automáticos: foco → pausa → foco... (pausa longa no 4º foco)
+  autoCycle: boolean;
+  cycleIndex: number; // focos completados no ciclo atual (0-4)
+  focusDurationMin: number; // duração de foco preferida (pausas usam defaults)
 };
+
+export const CYCLE_LENGTH = 4;
 
 const STORAGE_KEY = "pomodoro-state-v1";
 const TICK_MS = 1000;
@@ -43,6 +49,9 @@ function defaultState(): PomodoroState {
     pausedTotalMs: 0,
     cardId: null,
     cardName: null,
+    autoCycle: false,
+    cycleIndex: 0,
+    focusDurationMin: DEFAULT_DURATIONS.focus,
   };
 }
 
@@ -55,7 +64,8 @@ function loadFromStorage(): PomodoroState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PomodoroState;
+    // merge com defaults: estados persistidos antes de campos novos existirem
+    return { ...defaultState(), ...(JSON.parse(raw) as Partial<PomodoroState>) };
   } catch {
     return null;
   }
@@ -125,7 +135,15 @@ function stopTick() {
 
 export function configureSession(type: SessionType, durationMin: number) {
   if (state.status !== "idle") return;
-  setState({ type, durationMin });
+  setState({
+    type,
+    durationMin,
+    ...(type === "focus" ? { focusDurationMin: durationMin } : {}),
+  });
+}
+
+export function setAutoCycle(on: boolean) {
+  setState({ autoCycle: on, cycleIndex: 0 });
 }
 
 export function setSessionCard(cardId: string | null, cardName: string | null) {
@@ -149,6 +167,7 @@ export function start(opts?: {
     pausedTotalMs: 0,
     cardId: opts?.cardId ?? state.cardId ?? null,
     cardName: opts?.cardName ?? state.cardName ?? null,
+    ...(type === "focus" && opts?.durationMin ? { focusDurationMin: opts.durationMin } : {}),
   });
   startTick();
 }
@@ -187,6 +206,7 @@ export function stop() {
     startedAt: 0,
     pausedAt: null,
     pausedTotalMs: 0,
+    cycleIndex: 0, // parar manualmente zera o ciclo
   });
 }
 
@@ -240,6 +260,27 @@ export async function complete() {
     toast.error("Erro ao registrar sessão");
   } finally {
     recovering = false;
+  }
+
+  // Ciclos automáticos: encadeia a próxima sessão (mesmo se a gravação falhou,
+  // o fluxo de trabalho do usuário não deve travar)
+  if (state.autoCycle) {
+    if (completedType === "focus") {
+      const nextIndex = state.cycleIndex + 1;
+      setState({ cycleIndex: nextIndex });
+      if (nextIndex >= CYCLE_LENGTH) {
+        toast.success("4 focos completos! 🏆", "Pausa longa merecida.");
+        start({ type: "long_break", durationMin: DEFAULT_DURATIONS.long_break });
+      } else {
+        start({ type: "short_break", durationMin: DEFAULT_DURATIONS.short_break });
+      }
+    } else if (completedType === "short_break") {
+      start({ type: "focus", durationMin: state.focusDurationMin });
+    } else {
+      // pausa longa terminou: ciclo fechado — para e celebra
+      setState({ cycleIndex: 0, type: "focus", durationMin: state.focusDurationMin });
+      toast.success("Ciclo completo! 🎉", "4 focos + pausa longa. Recomeça quando quiser.");
+    }
   }
 }
 
