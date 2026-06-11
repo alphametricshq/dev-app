@@ -145,7 +145,7 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
 
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
-    if (isTempId(id)) return;
+    if (isTempId(id) || id.startsWith("list:")) return;
     const card = findCard(id);
     if (card) setActiveCard(card);
   }
@@ -154,6 +154,8 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     const { active, over } = e;
     if (!over || !board) return;
     const activeId = String(active.id);
+    // Drag de LISTA não mexe nos cards
+    if (activeId.startsWith("list:")) return;
     const overId = String(over.id);
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
@@ -177,6 +179,14 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     const activeId = String(active.id);
     if (isTempId(activeId)) return;
     const overId = String(over.id);
+
+    // Reordenação de LISTA (drag pelo grip do header da coluna)
+    if (activeId.startsWith("list:")) {
+      if (!overId.startsWith("list:") || activeId === overId) return;
+      await reorderListTo(activeId.slice(5), overId.slice(5));
+      return;
+    }
+
     const card = findCard(activeId);
     if (!card) return;
 
@@ -231,6 +241,45 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
     const res = await fetch(`/api/trello/boards/${boardId}`);
     const data = await res.json();
     if (data?.ok) setBoard(data.board);
+  }
+
+  async function reorderListTo(listId: string, overListId: string) {
+    if (!board) return;
+    const sorted = [...board.lists].sort((a, b) => a.pos - b.pos);
+    const oldIdx = sorted.findIndex((l) => l.id === listId);
+    const newIdx = sorted.findIndex((l) => l.id === overListId);
+    if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
+
+    const reordered = arrayMove(sorted, oldIdx, newIdx);
+    // Otimista: reatribui pos local em incrementos
+    const before = board.lists;
+    setBoard(
+      (prev) =>
+        prev && { ...prev, lists: reordered.map((l, i) => ({ ...l, pos: (i + 1) * 1000 })) },
+    );
+
+    // Pos pro Trello: top, bottom ou média dos vizinhos na nova ordem
+    let pos: "top" | "bottom" | number;
+    if (newIdx === 0) pos = "top";
+    else if (newIdx === reordered.length - 1) pos = "bottom";
+    else {
+      const prevPos = (newIdx - 1 + 1) * 1000;
+      const nextPos = (newIdx + 1 + 1) * 1000;
+      pos = (prevPos + nextPos) / 2;
+    }
+
+    try {
+      const res = await fetch(`/api/trello/lists/${listId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pos }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error ?? "Erro ao mover lista");
+    } catch (e) {
+      toast.error("Erro ao mover lista", e instanceof Error ? e.message : String(e));
+      setBoard((prev) => prev && { ...prev, lists: before });
+    }
   }
 
   // ============== Mutações ==============

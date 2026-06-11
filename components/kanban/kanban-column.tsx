@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, MoreVertical, Archive, Pencil, Bookmark } from "lucide-react";
+import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus, MoreVertical, Archive, Pencil, Bookmark, GripVertical } from "lucide-react";
 import { KanbanCard } from "./kanban-card";
 import type { TrelloListItem, TrelloCardItem } from "@/lib/integrations/trello-api";
 import type { Template, CardTemplateData } from "@/lib/db/templates-queries";
@@ -35,10 +35,14 @@ export function KanbanColumn({
   onRenameList: (listId: string, name: string) => void;
   onArchiveList: (listId: string) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `list:${list.id}`,
-    data: { type: "list", listId: list.id },
-  });
+  // useSortable inclui o droppable (cards continuam soltando na coluna via
+  // id "list:...") e adiciona o drag de reordenação da própria lista —
+  // os listeners ficam SÓ no grip do header pra não roubar cliques.
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
+    useSortable({
+      id: `list:${list.id}`,
+      data: { type: "list", listId: list.id },
+    });
 
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -96,12 +100,23 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-xl border border-border bg-bg-subtle/60 transition-colors",
-        isOver && "ring-2 ring-accent/60"
+        "group/column flex w-72 shrink-0 flex-col rounded-xl border border-border bg-bg-subtle/60 transition-colors",
+        isOver && "ring-2 ring-accent/60",
+        isDragging && "opacity-60",
       )}
     >
       <div className="flex items-center gap-2 px-3 pt-3">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab rounded p-0.5 text-fg-subtle opacity-0 transition-opacity hover:bg-bg-hover hover:text-fg focus-visible:opacity-100 group-hover/column:opacity-100 active:cursor-grabbing"
+          aria-label="Arrastar lista"
+          title="Arrastar pra reordenar a lista"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
         {editingTitle ? (
           <input
             ref={titleRef}
