@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const cfg = await getIssuesSyncConfig();
-    const [count, recent] = await Promise.all([countLinkedIssues(), listRecentIssueLinks(5)]);
+    // Só links da integração de Issues — os do Project têm painel próprio
+    const [count, recent] = await Promise.all([
+      countLinkedIssues("issues"),
+      listRecentIssueLinks(5, "issues"),
+    ]);
     return NextResponse.json({ ok: true, enabled: cfg.enabled, totalLinked: count, recent });
   } catch (e) {
     return NextResponse.json(

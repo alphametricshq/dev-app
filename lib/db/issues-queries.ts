@@ -53,20 +53,32 @@ export async function linkIssue(input: {
   });
 }
 
-export async function countLinkedIssues(): Promise<number> {
+// Origem do link: integração de Issues usa key "owner/repo#N";
+// a de Project usa key "project:ITEMID".
+export type LinkSource = "issues" | "project" | "all";
+
+function sourceWhere(source: LinkSource): string {
+  if (source === "project") return `AND issue_key LIKE 'project:%'`;
+  if (source === "issues") return `AND issue_key NOT LIKE 'project:%'`;
+  return "";
+}
+
+export async function countLinkedIssues(source: LinkSource = "all"): Promise<number> {
   await initDb();
   const c = db();
-  const r = await c.execute(`SELECT COUNT(*) AS n FROM issue_card_links`);
+  const r = await c.execute(
+    `SELECT COUNT(*) AS n FROM issue_card_links WHERE 1=1 ${sourceWhere(source)}`,
+  );
   return Number(r.rows[0]?.n ?? 0);
 }
 
-export async function listRecentIssueLinks(limit = 10): Promise<IssueLink[]> {
+export async function listRecentIssueLinks(limit = 10, source: LinkSource = "all"): Promise<IssueLink[]> {
   await initDb();
   const c = db();
   const r = await c.execute({
     sql: `SELECT issue_key, issue_url, issue_title, card_id, card_url, created_at
           FROM issue_card_links
-          WHERE card_id IS NOT NULL AND card_id != ''
+          WHERE card_id IS NOT NULL AND card_id != '' ${sourceWhere(source)}
           ORDER BY created_at DESC
           LIMIT ?`,
     args: [limit],
