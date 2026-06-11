@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 
 type Board = { id: string; name: string };
 
+const LAST_BOARD_KEY = "board-last-selected";
+
 export function BoardSelector({
   selectedId,
   onSelect,
@@ -38,7 +40,12 @@ export function BoardSelector({
         if (data?.ok && Array.isArray(data.boards)) {
           setBoards(data.boards);
           onLoadedRef.current?.(data.boards.length);
-          if (!selectedId && data.boards.length > 0) onSelect(data.boards[0]);
+          if (!selectedId && data.boards.length > 0) {
+            // Reabre o último board usado (se ainda existir) em vez do primeiro
+            const lastId = localStorage.getItem(LAST_BOARD_KEY);
+            const last = lastId ? data.boards.find((b: Board) => b.id === lastId) : null;
+            onSelect(last ?? data.boards[0]);
+          }
         } else {
           const msg = data?.error ?? "Erro ao buscar boards do Trello";
           setError(msg);
@@ -102,6 +109,7 @@ export function BoardSelector({
               <li key={b.id}>
                 <button
                   onClick={() => {
+                    localStorage.setItem(LAST_BOARD_KEY, b.id);
                     onSelect(b);
                     setOpen(false);
                   }}
