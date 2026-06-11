@@ -52,11 +52,28 @@ export function ProjectBoard() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  // Refs pro auto-refresh não capturar estado velho nem atrapalhar um drag
+  const draggingRef = useRef(false);
+  const loadRef = useRef<(silent?: boolean) => void>(() => {});
+
   useEffect(() => {
     const stored = localStorage.getItem(ONLY_MINE_KEY);
     if (stored === "0") setOnlyMine(false);
     load();
   }, []);
+
+  // Auto-refresh a cada 60s: o board é compartilhado com a equipe, então
+  // mudanças de status feitas por outros aparecem sem precisar de F5.
+  // Pula quando a janela tá oculta ou no meio de um drag.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.hidden || draggingRef.current) return;
+      loadRef.current(true);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  loadRef.current = load;
 
   async function load(silent = false) {
     if (silent) setRefreshing(true);
@@ -100,11 +117,13 @@ export function ProjectBoard() {
   }
 
   function handleDragStart(e: DragStartEvent) {
+    draggingRef.current = true;
     const item = visibleItems.find((it) => it.itemId === String(e.active.id));
     if (item) setActiveItem(item);
   }
 
   async function handleDragEnd(e: DragEndEvent) {
+    draggingRef.current = false;
     const { active, over } = e;
     setActiveItem(null);
     if (!over || !data) return;
