@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const cfg = await getProjectSyncConfig();
-    const recent = await listRecentIssueLinks(5);
-    // só os links de project (key começa com "project:")
-    const projectRecent = recent.filter((r) => r.issue_key.startsWith("project:"));
-    return NextResponse.json({ ok: true, config: cfg, recent: projectRecent });
+    // Filtro na query: antes pegava os 5 mais recentes GERAIS e filtrava,
+    // podendo mostrar menos de 5 (ou nada) mesmo com links do project
+    const recent = await listRecentIssueLinks(5, "project");
+    return NextResponse.json({ ok: true, config: cfg, recent });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "Erro desconhecido" },
