@@ -1,7 +1,7 @@
 import { createCard } from "@/lib/integrations/trello-api";
 import { findTodoList } from "@/lib/integrations/trello-todo";
 import { fetchAssignedIssues } from "@/lib/integrations/github-issues";
-import { getLinkedIssueKeys, linkIssue } from "@/lib/db/issues-queries";
+import { getLinkedIssueKeys, getLinkedIssueUrls, linkIssue } from "@/lib/db/issues-queries";
 import { getSetting, setSetting } from "@/lib/db/queries";
 import { withSyncLock } from "@/lib/sync-lock";
 
@@ -71,8 +71,10 @@ async function doSync(): Promise<{ created: number; skipped: number }> {
   const issues = await fetchAssignedIssues();
   if (issues.length === 0) return { created: 0, skipped: 0 };
 
-  const linked = await getLinkedIssueKeys();
-  const novos = issues.filter((i) => !linked.has(i.key));
+  const [linked, linkedUrls] = await Promise.all([getLinkedIssueKeys(), getLinkedIssueUrls()]);
+  // Dedupe por key E por URL — o mesmo issue pode já ter virado card via
+  // a integração do Project (key project:ITEMID, mesma URL)
+  const novos = issues.filter((i) => !linked.has(i.key) && !linkedUrls.has(i.htmlUrl));
   if (novos.length === 0) return { created: 0, skipped: issues.length };
 
   const todo = await findTodoList();
