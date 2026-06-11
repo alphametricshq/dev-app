@@ -11,6 +11,7 @@ import { DailyInsightTrigger } from "@/components/daily-insight-trigger";
 import { PomodoroElectronBridge } from "@/components/pomodoro/electron-bridge";
 import { ShortcutsElectronBridge } from "@/components/shortcuts-electron-bridge";
 import { StreakWarningTrigger } from "@/components/streak-warning-trigger";
+import { GoalNudgeTrigger } from "@/components/goal-nudge-trigger";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,6 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <PomodoroElectronBridge />
       <ShortcutsElectronBridge />
       <StreakWarningTrigger />
+      <GoalNudgeTrigger />
     </div>
   );
 }
