@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Search, Loader2, KanbanSquare, Star } from "lucide-react";
+import { X, Search, Loader2, KanbanSquare, Star, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDoneListName } from "@/lib/trello-hints";
 
@@ -14,6 +14,15 @@ type Card = {
   closed: boolean;
 };
 type List = { id: string; name: string; closed: boolean };
+type ProjectItem = {
+  itemId: string;
+  title: string;
+  status: string | null;
+  state: string | null;
+  assignees: string[];
+  cliente: string | null;
+};
+type Tab = "trello" | "demandas";
 
 export function CardSelector({
   onClose,
@@ -30,6 +39,30 @@ export function CardSelector({
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [loadingCards, setLoadingCards] = useState(false);
+  const [tab, setTab] = useState<Tab>("trello");
+  const [demandas, setDemandas] = useState<ProjectItem[] | null>(null);
+  const [loadingDemandas, setLoadingDemandas] = useState(false);
+  const [demandasError, setDemandasError] = useState<string | null>(null);
+
+  // Demandas carregam sob demanda (primeira vez que a aba abre)
+  useEffect(() => {
+    if (tab !== "demandas" || demandas !== null || loadingDemandas) return;
+    setLoadingDemandas(true);
+    fetch("/api/project/board")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.ok) throw new Error(d?.error ?? "Erro ao carregar o Project");
+        const me = (d.myLogin as string | null)?.toLowerCase();
+        const items = (d.items as ProjectItem[]).filter(
+          (it) =>
+            it.state !== "CLOSED" &&
+            (!me || it.assignees.some((a) => a.toLowerCase() === me)),
+        );
+        setDemandas(items);
+      })
+      .catch((e) => setDemandasError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoadingDemandas(false));
+  }, [tab, demandas, loadingDemandas]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -104,11 +137,74 @@ export function CardSelector({
             <KanbanSquare className="h-4 w-4 text-accent" />
             <h2 className="text-base font-semibold text-fg">Vincular card</h2>
           </div>
-          <button onClick={onClose} className="rounded p-1 text-fg-muted hover:bg-bg-hover hover:text-fg">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 rounded-full border border-border bg-bg-subtle p-0.5 text-xs">
+              <button
+                onClick={() => setTab("trello")}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-0.5 transition-colors",
+                  tab === "trello" ? "bg-bg-card text-fg shadow-sm" : "text-fg-muted hover:text-fg",
+                )}
+              >
+                <KanbanSquare className="h-3 w-3" />
+                Trello
+              </button>
+              <button
+                onClick={() => setTab("demandas")}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-0.5 transition-colors",
+                  tab === "demandas" ? "bg-bg-card text-fg shadow-sm" : "text-fg-muted hover:text-fg",
+                )}
+              >
+                <FolderKanban className="h-3 w-3" />
+                Demandas
+              </button>
+            </div>
+            <button onClick={onClose} className="rounded p-1 text-fg-muted hover:bg-bg-hover hover:text-fg">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </header>
 
+        {tab === "demandas" ? (
+          <div className="space-y-3 px-5 py-4">
+            {loadingDemandas ? (
+              <div className="flex h-16 items-center justify-center text-fg-muted">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Carregando demandas...
+              </div>
+            ) : demandasError ? (
+              <p className="py-4 text-center text-xs text-danger">{demandasError}</p>
+            ) : !demandas || demandas.length === 0 ? (
+              <p className="py-6 text-center text-sm text-fg-muted">
+                Nenhuma demanda aberta atribuída a você
+              </p>
+            ) : (
+              <ul className="max-h-96 space-y-1 overflow-y-auto">
+                {demandas.map((it) => (
+                  <li key={it.itemId}>
+                    <button
+                      onClick={() => onSelect({ id: `project:${it.itemId}`, name: it.title })}
+                      className="flex w-full items-center gap-3 rounded-lg border border-border/50 bg-bg-subtle px-3 py-2 text-left text-sm transition-colors hover:border-accent/40 hover:bg-bg-hover"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-fg">{it.title}</div>
+                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-fg-subtle">
+                          {it.status && <span>{it.status}</span>}
+                          {it.cliente && (
+                            <span className="rounded bg-accent/10 px-1 py-0.5 text-[10px] font-semibold text-accent">
+                              {it.cliente}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
         <div className="space-y-3 px-5 py-4">
           {loadingBoards ? (
             <div className="flex h-16 items-center justify-center text-fg-muted">
@@ -205,6 +301,7 @@ export function CardSelector({
             </>
           )}
         </div>
+        )}
       </div>
     </div>
   );
