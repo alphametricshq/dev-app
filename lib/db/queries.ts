@@ -161,6 +161,27 @@ export async function getTrelloCompletedByWeekday(days = 90): Promise<{ weekday:
   }));
 }
 
+export type WeekdayHourCell = { weekday: number; hour: number; count: number };
+
+export async function getTrelloCompletedByWeekdayHour(days = 90): Promise<WeekdayHourCell[]> {
+  await initDb();
+  const c = db();
+  const r = await c.execute({
+    sql: `SELECT CAST(strftime('%w', completed_at, 'localtime') AS INTEGER) as weekday,
+                 CAST(strftime('%H', completed_at, 'localtime') AS INTEGER) as hour,
+                 COUNT(*) as count
+          FROM trello_tasks_completed
+          WHERE completed_at >= datetime('now', ?)
+          GROUP BY weekday, hour`,
+    args: [`-${days} days`],
+  });
+  return r.rows.map((row) => ({
+    weekday: Number(row.weekday),
+    hour: Number(row.hour),
+    count: Number(row.count),
+  }));
+}
+
 export async function getRecentTrelloTasks(limit = 10): Promise<TrelloTaskRow[]> {
   await initDb();
   const c = db();

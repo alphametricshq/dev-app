@@ -12,18 +12,21 @@ import {
   getTrelloCompletedByDay,
   getTrelloByBoard,
   getRecentTrelloTasks,
+  getTrelloCompletedByWeekdayHour,
 } from "@/lib/db/queries";
+import { WeekdayHourHeatmap } from "@/components/analytics/weekday-hour-heatmap";
 import { getTrelloAnalytics } from "@/lib/analytics/trello";
 import { CheckSquare, Calendar, BarChart3, Flame, LineChart } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrelloPage() {
-  const [byDay, byBoard, recent, analytics] = await Promise.all([
+  const [byDay, byBoard, recent, analytics, byWeekdayHour] = await Promise.all([
     getTrelloCompletedByDay(90),
     getTrelloByBoard(90),
     getRecentTrelloTasks(20),
     getTrelloAnalytics(),
+    getTrelloCompletedByWeekdayHour(90),
   ]);
 
   const total = analytics.total90;
@@ -81,6 +84,8 @@ export default async function TrelloPage() {
               peakHour={analytics.peakHour}
             />
           </div>
+
+          <WeekdayHourHeatmap data={byWeekdayHour} />
 
           <InsightsBox insights={analytics.insights} />
         </section>
