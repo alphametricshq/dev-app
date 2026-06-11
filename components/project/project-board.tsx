@@ -112,6 +112,21 @@ export function ProjectBoard() {
     return items;
   }, [data, onlyMine]);
 
+  // Distribuição por cliente e prioridade dos itens visíveis
+  const stats = useMemo(() => {
+    const clientes = new Map<string, number>();
+    const prioridades = new Map<string, number>();
+    for (const it of visibleItems) {
+      if (it.cliente) clientes.set(it.cliente, (clientes.get(it.cliente) ?? 0) + 1);
+      if (it.prioridade) prioridades.set(it.prioridade, (prioridades.get(it.prioridade) ?? 0) + 1);
+    }
+    const byCount = (a: [string, number], b: [string, number]) => b[1] - a[1];
+    return {
+      clientes: Array.from(clientes.entries()).sort(byCount),
+      prioridades: Array.from(prioridades.entries()).sort((a, b) => a[0].localeCompare(b[0])),
+    };
+  }, [visibleItems]);
+
   function itemsOf(statusName: string): ProjectItem[] {
     return visibleItems.filter((it) => it.status === statusName);
   }
@@ -249,6 +264,35 @@ export function ProjectBoard() {
           </button>
         </div>
       </div>
+
+      {(stats.clientes.length > 0 || stats.prioridades.length > 0) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]">
+          {stats.prioridades.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {stats.prioridades.map(([prio, count]) => (
+                <span
+                  key={prio}
+                  className={cn(
+                    "rounded-full border px-2 py-0.5",
+                    PRIORITY_STYLE[prio] ?? "border-border bg-bg-subtle text-fg-muted",
+                  )}
+                >
+                  {prio.replace(/—.*$/, "").trim()} <span className="font-mono">{count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          {stats.clientes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-fg-muted">
+              {stats.clientes.map(([cliente, count]) => (
+                <span key={cliente} className="rounded bg-accent/10 px-1.5 py-0.5 text-accent">
+                  {cliente} <span className="font-mono">{count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-4">
