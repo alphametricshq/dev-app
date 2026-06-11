@@ -1,3 +1,4 @@
+import { localIsoDate } from "@/lib/local-date";
 import { NextResponse } from "next/server";
 import { exportData } from "@/lib/backup";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const backup = await exportData();
-    const filename = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const filename = `dashboard-backup-${localIsoDate()}.json`;
     return new NextResponse(JSON.stringify(backup, null, 2), {
       headers: {
         "Content-Type": "application/json",

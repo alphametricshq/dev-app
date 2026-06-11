@@ -1,5 +1,6 @@
 "use client";
 
+import { localIsoDate } from "@/lib/local-date";
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -168,7 +169,7 @@ function MiniHeatmap({ doneSet, colorClass }: { doneSet: Set<string>; colorClass
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = localIsoDate(d);
     days.push({ iso, done: doneSet.has(iso) });
   }
   return (

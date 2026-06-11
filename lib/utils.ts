@@ -12,8 +12,3 @@ export function formatDate(date: Date | string, pattern: "short" | "long" = "sho
   }
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
-
-export function isoDate(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return d.toISOString().slice(0, 10);
-}

@@ -23,6 +23,7 @@ import { InsightsBox } from "@/components/analytics/insights-box";
 import { GoalCelebration } from "@/components/goal-celebration";
 import { ActivityFeed } from "./activity-feed";
 import { getRecentActivity } from "@/lib/activity-feed";
+import { localIsoDate } from "@/lib/local-date";
 import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
@@ -169,8 +170,7 @@ function lastNDays(data: { date: string; count: number }[], n: number): number[]
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    result.push(map.get(iso) ?? 0);
+    result.push(map.get(localIsoDate(d)) ?? 0);
   }
   return result;
 }
@@ -187,8 +187,7 @@ function sumLastDays(
   for (let i = startOffset; i < endOffsetExclusive; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    total += map.get(iso) ?? 0;
+    total += map.get(localIsoDate(d)) ?? 0;
   }
   return total;
 }
@@ -226,14 +225,13 @@ function currentStreak(contribs: { date: string; count: number }[]): number {
   today.setHours(0, 0, 0, 0);
 
   // Pula o dia atual se ainda não tem contribuição (não quebra streak)
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = localIsoDate(today);
   const startOffset = (map.get(todayIso) ?? 0) > 0 ? 0 : 1;
 
   for (let i = startOffset; i < 365; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    if ((map.get(iso) ?? 0) > 0) streak++;
+    if ((map.get(localIsoDate(d)) ?? 0) > 0) streak++;
     else break;
   }
   return streak;
