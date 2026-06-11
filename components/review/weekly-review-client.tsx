@@ -13,11 +13,16 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Copy,
+  Download,
 } from "lucide-react";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { cn } from "@/lib/utils";
 import { localIsoDate } from "@/lib/local-date";
+import { toast } from "@/lib/toast";
+import { weeklyReviewToMarkdown } from "@/lib/weekly-review-export";
+import { downloadMarkdown } from "@/lib/journal-export";
 import type { WeeklyReview } from "@/lib/weekly-review";
 
 export function WeeklyReviewClient() {
@@ -78,11 +83,44 @@ export function WeeklyReviewClient() {
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-        {weeksAgo > 0 && (
-          <button onClick={() => setWeeksAgo(0)} className="btn-secondary py-1.5 text-xs">
-            Voltar pra atual
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {review && (
+            <>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(weeklyReviewToMarkdown(review));
+                    toast.success("Resumo copiado", "Markdown pronto pra colar");
+                  } catch {
+                    toast.error("Não consegui copiar");
+                  }
+                }}
+                className="btn-secondary py-1.5 text-xs"
+                title="Copiar resumo da semana em Markdown"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copiar resumo
+              </button>
+              <button
+                onClick={() =>
+                  downloadMarkdown(
+                    `retrospectiva-${review.weekStart}.md`,
+                    weeklyReviewToMarkdown(review),
+                  )
+                }
+                className="btn-secondary py-1.5 text-xs"
+                title="Baixar resumo em .md"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+          {weeksAgo > 0 && (
+            <button onClick={() => setWeeksAgo(0)} className="btn-secondary py-1.5 text-xs">
+              Voltar pra atual
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && (
