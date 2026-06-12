@@ -1,9 +1,27 @@
 import { NextResponse } from "next/server";
-import { createProjectDraft, moveProjectItem } from "@/lib/integrations/github-project";
+import {
+  createProjectDraft,
+  fetchProjectMeta,
+  moveProjectItem,
+} from "@/lib/integrations/github-project";
+import { getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
 import { ProjectAuthError } from "@/lib/integrations/github-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Meta leve (sem os itens) pro formulário de criação — usado pelo quick-task.
+export async function GET() {
+  try {
+    const cfg = await getProjectSyncConfig();
+    const meta = await fetchProjectMeta(cfg.org, cfg.projectNumber);
+    return NextResponse.json({ ok: true, meta });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erro desconhecido";
+    const status = e instanceof ProjectAuthError ? 403 : 500;
+    return NextResponse.json({ ok: false, error: msg }, { status });
+  }
+}
 
 type FieldInput = { fieldId: string; optionId: string };
 
