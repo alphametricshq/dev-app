@@ -20,6 +20,8 @@ import {
   User,
   CalendarClock,
   FileText,
+  Plus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -49,12 +51,15 @@ export function ProjectBoard() {
   const [onlyMine, setOnlyMine] = useState(true);
   const [activeItem, setActiveItem] = useState<ProjectItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showNewDemand, setShowNewDemand] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Refs pro auto-refresh não capturar estado velho nem atrapalhar um drag
   const draggingRef = useRef(false);
   const loadRef = useRef<(silent?: boolean) => void>(() => {});
+  const modalOpenRef = useRef(false);
+  modalOpenRef.current = showNewDemand;
 
   useEffect(() => {
     const stored = localStorage.getItem(ONLY_MINE_KEY);
@@ -67,7 +72,7 @@ export function ProjectBoard() {
   // Pula quando a janela tá oculta ou no meio de um drag.
   useEffect(() => {
     const id = setInterval(() => {
-      if (document.hidden || draggingRef.current) return;
+      if (document.hidden || draggingRef.current || modalOpenRef.current) return;
       loadRef.current(true);
     }, 60_000);
     return () => clearInterval(id);
@@ -76,20 +81,27 @@ export function ProjectBoard() {
   loadRef.current = load;
 
   async function load(silent = false) {
-    if (silent) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-    setAuthError(false);
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+      setError(null);
+      setAuthError(false);
+    }
     try {
       const res = await fetch("/api/project/board");
       const d = await res.json();
       if (!d?.ok) {
-        setAuthError(!!d?.authError);
+        if (!silent) setAuthError(!!d?.authError);
         throw new Error(d?.error ?? "Falha ao carregar o Project");
       }
       setData(d);
+      setError(null);
+      setAuthError(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      // Refresh silencioso que falha não derruba o board (nem um modal aberto)
+      // pra tela de erro — mantém os dados antigos e tenta de novo no próximo tick.
+      if (!silent) setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -107,7 +119,13 @@ export function ProjectBoard() {
     let items = data.items.filter((it) => it.state !== "CLOSED");
     if (onlyMine && data.myLogin) {
       const me = data.myLogin.toLowerCase();
-      items = items.filter((it) => it.assignees.some((a) => a.toLowerCase() === me));
+      // Drafts sem assignee entram no "Só minhas": os criados pelo app nascem
+      // assim e sumiriam do board logo após criar.
+      items = items.filter(
+        (it) =>
+          it.assignees.some((a) => a.toLowerCase() === me) ||
+          (it.isDraft && it.assignees.length === 0),
+      );
     }
     return items;
   }, [data, onlyMine]);
@@ -262,6 +280,10 @@ export function ProjectBoard() {
             <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
             Atualizar
           </button>
+          <button onClick={() => setShowNewDemand(true)} className="btn-primary py-1 text-xs">
+            <Plus className="h-3 w-3" />
+            Nova demanda
+          </button>
         </div>
       </div>
 
@@ -308,6 +330,211 @@ export function ProjectBoard() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {showNewDemand && (
+        <NewDemandModal
+          meta={data.meta}
+          onClose={() => setShowNewDemand(false)}
+          onCreated={() => {
+            setShowNewDemand(false);
+            load(true);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function NewDemandModal({
+  meta,
+  onClose,
+  onCreated,
+}: {
+  meta: ProjectMeta;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [prioridadeId, setPrioridadeId] = useState("");
+  const [statusId, setStatusId] = useState(meta.statusOptions[0]?.id ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  // Só fecha pelo backdrop se o clique COMEÇOU nele (soltar uma seleção de
+  // texto em cima do backdrop não pode descartar o que foi digitado)
+  const backdropPointerDown = useRef(false);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !submitting) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose, submitting]);
+
+  async function submit() {
+    const trimmed = title.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+
+    // Convenção do board: título com prefixo [Cliente]
+    const clienteName = meta.clienteField?.options.find((o) => o.id === clienteId)?.name;
+    const finalTitle =
+      clienteName && !trimmed.startsWith("[") ? `[${clienteName}] ${trimmed}` : trimmed;
+
+    const fields: { fieldId: string; optionId: string }[] = [];
+    if (statusId) fields.push({ fieldId: meta.statusFieldId, optionId: statusId });
+    if (clienteId && meta.clienteField) {
+      fields.push({ fieldId: meta.clienteField.id, optionId: clienteId });
+    }
+    if (prioridadeId && meta.prioridadeField) {
+      fields.push({ fieldId: meta.prioridadeField.id, optionId: prioridadeId });
+    }
+
+    try {
+      const res = await fetch("/api/project/demand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: meta.projectId,
+          title: finalTitle,
+          description: description.trim() || undefined,
+          fields,
+        }),
+      });
+      const d = await res.json();
+      if (!d?.ok) {
+        // Sucesso parcial: o draft existe, só os campos falharam. Fechar o
+        // modal evita um retry que criaria draft duplicado no board da equipe.
+        if (d?.itemId) {
+          toast.info(
+            "Demanda criada, mas sem todos os campos",
+            "Ajusta Cliente/Prioridade/Status direto no GitHub.",
+            8000,
+          );
+          onCreated();
+          return;
+        }
+        throw new Error(d?.error ?? "Erro ao criar demanda");
+      }
+      toast.success("Demanda criada", `"${finalTitle.slice(0, 60)}" entrou no board como draft`);
+      onCreated();
+    } catch (err) {
+      toast.error("Erro ao criar demanda", err instanceof Error ? err.message : String(err));
+      setSubmitting(false);
+    }
+  }
+
+  function onFieldKeyDown(e: React.KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submit();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      onPointerDown={(e) => {
+        backdropPointerDown.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && backdropPointerDown.current && !submitting) onClose();
+      }}
+    >
+      <div className="w-full max-w-md rounded-xl border border-border bg-bg-card p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-fg">Nova demanda</h3>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={onFieldKeyDown}
+            placeholder="Título da demanda..."
+            className="input"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={onFieldKeyDown}
+            placeholder="Descrição (opcional)"
+            rows={3}
+            className="w-full resize-none rounded-lg border border-border bg-bg-subtle px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none"
+          />
+
+          <div className="grid grid-cols-2 gap-2">
+            {meta.clienteField && (
+              <label className="space-y-1">
+                <span className="text-[11px] text-fg-muted">Cliente</span>
+                <select
+                  value={clienteId}
+                  onChange={(e) => setClienteId(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-bg-subtle px-2 py-1.5 text-xs text-fg focus:border-accent focus:outline-none"
+                >
+                  <option value="">—</option>
+                  {meta.clienteField.options.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {meta.prioridadeField && (
+              <label className="space-y-1">
+                <span className="text-[11px] text-fg-muted">Prioridade</span>
+                <select
+                  value={prioridadeId}
+                  onChange={(e) => setPrioridadeId(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-bg-subtle px-2 py-1.5 text-xs text-fg focus:border-accent focus:outline-none"
+                >
+                  <option value="">—</option>
+                  {meta.prioridadeField.options.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="space-y-1">
+              <span className="text-[11px] text-fg-muted">Status</span>
+              <select
+                value={statusId}
+                onChange={(e) => setStatusId(e.target.value)}
+                className="w-full rounded-lg border border-border bg-bg-subtle px-2 py-1.5 text-xs text-fg focus:border-accent focus:outline-none"
+              >
+                {meta.statusOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-fg-subtle">
+              Cria como <span className="text-fg">draft</span> no board · Ctrl+Enter
+            </p>
+            <button
+              onClick={submit}
+              disabled={!title.trim() || submitting}
+              className="btn-primary py-1.5 text-xs"
+            >
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              {submitting ? "Criando..." : "Criar demanda"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -18,11 +18,16 @@ export type ProjectItem = {
 
 export type ProjectStatusOption = { id: string; name: string };
 
+export type ProjectFieldMeta = { id: string; options: ProjectStatusOption[] };
+
 export type ProjectMeta = {
   projectId: string;
   title: string;
   statusFieldId: string;
   statusOptions: ProjectStatusOption[];
+  // Campos opcionais do board (null se o Project não tiver o campo)
+  clienteField: ProjectFieldMeta | null;
+  prioridadeField: ProjectFieldMeta | null;
 };
 
 type GqlContent = {
@@ -58,15 +63,19 @@ type ItemsData = {
   } | null;
 };
 
+type GqlSelectField = {
+  id: string;
+  options: { id: string; name: string }[];
+} | null;
+
 type MetaData = {
   organization?: {
     projectV2?: {
       id: string;
       title: string;
-      field?: {
-        id: string;
-        options: { id: string; name: string }[];
-      } | null;
+      status?: GqlSelectField;
+      cliente?: GqlSelectField;
+      prioridade?: GqlSelectField;
     } | null;
   } | null;
 };
@@ -110,7 +119,19 @@ query($org: String!, $num: Int!) {
     projectV2(number: $num) {
       id
       title
-      field(name: "Status") {
+      status: field(name: "Status") {
+        ... on ProjectV2SingleSelectField {
+          id
+          options { id name }
+        }
+      }
+      cliente: field(name: "Cliente") {
+        ... on ProjectV2SingleSelectField {
+          id
+          options { id name }
+        }
+      }
+      prioridade: field(name: "Prioridade") {
         ... on ProjectV2SingleSelectField {
           id
           options { id name }
@@ -179,16 +200,31 @@ export async function fetchProjectItems(org: string, projectNumber: number): Pro
   return items;
 }
 
+// Campo single-select válido tem id e options; field(name:) de outro tipo
+// (texto, data...) resolve como objeto vazio {} — trata como ausente.
+function selectField(f: GqlSelectField | undefined): ProjectFieldMeta | null {
+  return f?.id && f.options ? { id: f.id, options: f.options } : null;
+}
+
 export async function fetchProjectMeta(org: string, projectNumber: number): Promise<ProjectMeta> {
-  const data = await projectGraphql<MetaData>(META_QUERY, { org, num: projectNumber });
+  // tolerateNotFound: Cliente/Prioridade são opcionais — se o campo não
+  // existir no Project, a API devolve o alias null + erro NOT_FOUND.
+  const data = await projectGraphql<MetaData>(
+    META_QUERY,
+    { org, num: projectNumber },
+    { tolerateNotFound: true },
+  );
   const proj = data.organization?.projectV2;
   if (!proj) throw new Error("Project não encontrado ou sem acesso");
-  if (!proj.field) throw new Error('Campo "Status" não encontrado no Project');
+  const status = selectField(proj.status);
+  if (!status) throw new Error('Campo "Status" não encontrado no Project');
   return {
     projectId: proj.id,
     title: proj.title,
-    statusFieldId: proj.field.id,
-    statusOptions: proj.field.options,
+    statusFieldId: status.id,
+    statusOptions: status.options,
+    clienteField: selectField(proj.cliente),
+    prioridadeField: selectField(proj.prioridade),
   };
 }
 
@@ -204,4 +240,32 @@ export async function moveProjectItem(input: {
     fieldId: input.fieldId,
     optionId: input.optionId,
   });
+}
+
+const DRAFT_MUTATION = `
+mutation($projectId: ID!, $title: String!, $body: String) {
+  addProjectV2DraftIssue(input: { projectId: $projectId, title: $title, body: $body }) {
+    projectItem { id }
+  }
+}
+`;
+
+type DraftData = {
+  addProjectV2DraftIssue?: { projectItem?: { id: string } | null } | null;
+};
+
+/** Cria um draft item no Project e retorna o itemId (pra setar campos em seguida). */
+export async function createProjectDraft(input: {
+  projectId: string;
+  title: string;
+  body?: string;
+}): Promise<string> {
+  const data = await projectGraphql<DraftData>(DRAFT_MUTATION, {
+    projectId: input.projectId,
+    title: input.title,
+    body: input.body ?? "",
+  });
+  const itemId = data.addProjectV2DraftIssue?.projectItem?.id;
+  if (!itemId) throw new Error("GitHub não retornou o item criado");
+  return itemId;
 }
