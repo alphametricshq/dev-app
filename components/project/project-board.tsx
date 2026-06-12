@@ -52,6 +52,8 @@ export function ProjectBoard() {
   const [activeItem, setActiveItem] = useState<ProjectItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showNewDemand, setShowNewDemand] = useState(false);
+  const [clienteFilter, setClienteFilter] = useState<string | null>(null);
+  const [prioridadeFilter, setPrioridadeFilter] = useState<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -114,7 +116,9 @@ export function ProjectBoard() {
     localStorage.setItem(ONLY_MINE_KEY, next ? "1" : "0");
   }
 
-  const visibleItems = useMemo(() => {
+  // Itens após "Só minhas" — base dos chips de stats (que mostram sempre o
+  // panorama completo) e dos filtros de chip aplicados em cima
+  const baseItems = useMemo(() => {
     if (!data) return [];
     let items = data.items.filter((it) => it.state !== "CLOSED");
     if (onlyMine && data.myLogin) {
@@ -130,20 +134,31 @@ export function ProjectBoard() {
     return items;
   }, [data, onlyMine]);
 
-  // Distribuição por cliente e prioridade dos itens visíveis
+  const visibleItems = useMemo(() => {
+    let items = baseItems;
+    if (clienteFilter) items = items.filter((it) => it.cliente === clienteFilter);
+    if (prioridadeFilter) items = items.filter((it) => it.prioridade === prioridadeFilter);
+    return items;
+  }, [baseItems, clienteFilter, prioridadeFilter]);
+
+  // Distribuição por cliente e prioridade (pré-filtro de chip, pra todos os
+  // chips continuarem visíveis enquanto um deles está ativo)
   const stats = useMemo(() => {
     const clientes = new Map<string, number>();
     const prioridades = new Map<string, number>();
-    for (const it of visibleItems) {
+    for (const it of baseItems) {
       if (it.cliente) clientes.set(it.cliente, (clientes.get(it.cliente) ?? 0) + 1);
       if (it.prioridade) prioridades.set(it.prioridade, (prioridades.get(it.prioridade) ?? 0) + 1);
     }
+    // Filtro ativo continua aparecendo mesmo se zerar (ex.: ligou "Só minhas")
+    if (clienteFilter && !clientes.has(clienteFilter)) clientes.set(clienteFilter, 0);
+    if (prioridadeFilter && !prioridades.has(prioridadeFilter)) prioridades.set(prioridadeFilter, 0);
     const byCount = (a: [string, number], b: [string, number]) => b[1] - a[1];
     return {
       clientes: Array.from(clientes.entries()).sort(byCount),
       prioridades: Array.from(prioridades.entries()).sort((a, b) => a[0].localeCompare(b[0])),
     };
-  }, [visibleItems]);
+  }, [baseItems, clienteFilter, prioridadeFilter]);
 
   function itemsOf(statusName: string): ProjectItem[] {
     return visibleItems.filter((it) => it.status === statusName);
@@ -291,27 +306,60 @@ export function ProjectBoard() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]">
           {stats.prioridades.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              {stats.prioridades.map(([prio, count]) => (
-                <span
-                  key={prio}
-                  className={cn(
-                    "rounded-full border px-2 py-0.5",
-                    PRIORITY_STYLE[prio] ?? "border-border bg-bg-subtle text-fg-muted",
-                  )}
-                >
-                  {prio.replace(/—.*$/, "").trim()} <span className="font-mono">{count}</span>
-                </span>
-              ))}
+              {stats.prioridades.map(([prio, count]) => {
+                const active = prioridadeFilter === prio;
+                return (
+                  <button
+                    key={prio}
+                    onClick={() => setPrioridadeFilter(active ? null : prio)}
+                    title={active ? "Limpar filtro" : `Filtrar por ${prio}`}
+                    className={cn(
+                      "rounded-full border px-2 py-0.5 transition-all hover:brightness-125",
+                      PRIORITY_STYLE[prio] ?? "border-border bg-bg-subtle text-fg-muted",
+                      active && "ring-2 ring-accent/70",
+                      prioridadeFilter && !active && "opacity-40",
+                    )}
+                  >
+                    {prio.replace(/—.*$/, "").trim()} <span className="font-mono">{count}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
           {stats.clientes.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-fg-muted">
-              {stats.clientes.map(([cliente, count]) => (
-                <span key={cliente} className="rounded bg-accent/10 px-1.5 py-0.5 text-accent">
-                  {cliente} <span className="font-mono">{count}</span>
-                </span>
-              ))}
+              {stats.clientes.map(([cliente, count]) => {
+                const active = clienteFilter === cliente;
+                return (
+                  <button
+                    key={cliente}
+                    onClick={() => setClienteFilter(active ? null : cliente)}
+                    title={active ? "Limpar filtro" : `Filtrar por ${cliente}`}
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-accent transition-all",
+                      active
+                        ? "bg-accent/25 ring-1 ring-accent"
+                        : "bg-accent/10 hover:bg-accent/20",
+                      clienteFilter && !active && "opacity-40",
+                    )}
+                  >
+                    {cliente} <span className="font-mono">{count}</span>
+                  </button>
+                );
+              })}
             </div>
+          )}
+          {(clienteFilter || prioridadeFilter) && (
+            <button
+              onClick={() => {
+                setClienteFilter(null);
+                setPrioridadeFilter(null);
+              }}
+              className="flex items-center gap-1 text-fg-subtle hover:text-fg"
+            >
+              <X className="h-3 w-3" />
+              limpar
+            </button>
           )}
         </div>
       )}
