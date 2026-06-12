@@ -81,6 +81,7 @@ export class ProjectAuthError extends Error {}
 export async function projectGraphql<T>(
   query: string,
   variables: Record<string, unknown>,
+  opts?: { tolerateNotFound?: boolean },
 ): Promise<T> {
   const { tokens: candidates, ghCliFound } = await tokenCandidates();
   if (candidates.length === 0) {
@@ -103,14 +104,24 @@ export async function projectGraphql<T>(
       lastErr = `HTTP ${res.status}: ${await res.text()}`;
       continue;
     }
-    const json = (await res.json()) as { data?: T; errors?: { message: string }[] };
+    const json = (await res.json()) as {
+      data?: T;
+      errors?: { message: string; type?: string }[];
+    };
     if (json.errors?.length) {
       const msg = json.errors.map((e) => e.message).join("; ");
       if (isScopeError(msg)) {
         lastErr = msg;
         continue; // tenta o próximo token
       }
-      throw new Error(msg);
+      // Com tolerateNotFound, erros NOT_FOUND acompanhados de data parcial não
+      // derrubam a chamada — ex.: field(name:"Cliente") que não existe no
+      // Project retorna data com o alias null + um erro NOT_FOUND. O chamador
+      // precisa tratar os campos ausentes. Nunca usar em mutations.
+      const allNotFound = json.errors.every((e) => e.type === "NOT_FOUND");
+      if (!(opts?.tolerateNotFound && allNotFound && json.data)) {
+        throw new Error(msg);
+      }
     }
     if (!json.data) {
       lastErr = "Resposta sem data";
