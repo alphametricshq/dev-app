@@ -31,4 +31,21 @@ if (fs.existsSync(publicSrc)) {
   copyRecursive(publicSrc, publicDst);
 }
 
+// O file tracing do Next inclui a pasta inteira do projeto no standalone
+// (por causa do process.cwd() em lib/db/index.ts). Remove o que não pode
+// ir pro instalador: builds antigos (4GB+), banco de dados local e logs.
+const PRUNE_DIRS = ["dist-electron", "data"];
+for (const dir of PRUNE_DIRS) {
+  const target = path.join(standalone, dir);
+  if (fs.existsSync(target)) {
+    console.log(`[copy-standalone] removendo ${dir}/ do standalone`);
+    fs.rmSync(target, { recursive: true, force: true });
+  }
+}
+for (const entry of fs.readdirSync(standalone)) {
+  if (entry.endsWith(".log")) {
+    fs.rmSync(path.join(standalone, entry), { force: true });
+  }
+}
+
 console.log("[copy-standalone] OK");
