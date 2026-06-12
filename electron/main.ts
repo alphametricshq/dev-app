@@ -33,15 +33,24 @@ function currentBaseUrl(): string {
   return serverUrl;
 }
 
+// Mostra a janela principal mesmo quando está escondida na tray
+// (restore() + focus() não revelam janela hidden); recria se foi destruída.
+function showMainWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    void createWindow();
+  }
+}
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
+    showMainWindow();
   });
 }
 
@@ -307,12 +316,7 @@ function createTray() {
   const ctxMenu = Menu.buildFromTemplate([
     {
       label: "Abrir Dashboard",
-      click: () => {
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      },
+      click: () => showMainWindow(),
     },
     { type: "separator" },
     {
@@ -334,12 +338,10 @@ function createTray() {
   ]);
   tray.setContextMenu(ctxMenu);
   tray.on("click", () => {
-    if (!mainWindow) return;
-    if (mainWindow.isVisible() && mainWindow.isFocused()) {
+    if (mainWindow && mainWindow.isVisible() && mainWindow.isFocused()) {
       mainWindow.hide();
     } else {
-      mainWindow.show();
-      mainWindow.focus();
+      showMainWindow();
     }
   });
 }
