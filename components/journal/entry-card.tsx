@@ -12,7 +12,7 @@ export function EntryCard({
   onDelete,
 }: {
   entry: JournalEntry;
-  onUpdate: (id: number, data: { content: string; tags: string[]; mood: string }) => Promise<void>;
+  onUpdate: (id: number, data: { content: string; tags: string[]; mood: string; energy: number }) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -23,6 +23,7 @@ export function EntryCard({
         initialContent={entry.content}
         initialTags={entry.tags}
         initialMood={entry.mood}
+        initialEnergy={entry.energy}
         submitLabel="Atualizar"
         autoFocus
         onCancel={() => setEditing(false)}
@@ -39,6 +40,14 @@ export function EntryCard({
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {entry.mood && <span className="text-base">{entry.mood}</span>}
+          {entry.energy > 0 && (
+            <span
+              className="flex items-center gap-0.5 text-[10px] text-warning"
+              title={`Energia ${entry.energy}/5`}
+            >
+              ⚡{entry.energy}
+            </span>
+          )}
           <time className="text-[11px] text-fg-subtle">
             {formatDateTime(entry.created_at)}
             {entry.updated_at !== entry.created_at && (

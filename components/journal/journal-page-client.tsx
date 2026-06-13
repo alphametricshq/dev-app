@@ -99,7 +99,7 @@ export function JournalPageClient() {
     }
   }
 
-  async function handleCreate(data: { content: string; tags: string[]; mood: string }) {
+  async function handleCreate(data: { content: string; tags: string[]; mood: string; energy: number }) {
     try {
       const res = await fetch("/api/journal", {
         method: "POST",
@@ -117,7 +117,7 @@ export function JournalPageClient() {
 
   async function handleUpdate(
     id: number,
-    data: { content: string; tags: string[]; mood: string },
+    data: { content: string; tags: string[]; mood: string; energy: number },
   ) {
     try {
       const res = await fetch(`/api/journal/${id}`, {

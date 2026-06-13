@@ -19,6 +19,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       content: typeof body.content === "string" ? body.content.trim() : undefined,
       tags,
       mood: typeof body.mood === "string" ? body.mood.slice(0, 4) : undefined,
+      energy: typeof body.energy === "number" ? body.energy : undefined,
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

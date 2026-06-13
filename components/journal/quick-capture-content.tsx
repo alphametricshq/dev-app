@@ -37,7 +37,7 @@ export function QuickCaptureContent() {
     api?.closeQuickCapture?.();
   }
 
-  async function handleSubmit(data: { content: string; tags: string[]; mood: string }) {
+  async function handleSubmit(data: { content: string; tags: string[]; mood: string; energy: number }) {
     try {
       const res = await fetch("/api/journal", {
         method: "POST",
