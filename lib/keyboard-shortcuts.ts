@@ -1,6 +1,6 @@
 "use client";
 
-export type ShortcutId = "globalQuickCapture" | "globalQuickTask";
+export type ShortcutId = "globalQuickCapture" | "globalQuickTask" | "globalPomodoroToggle";
 
 export type ShortcutsConfig = Record<ShortcutId, string>;
 
@@ -9,11 +9,13 @@ const STORAGE_KEY = "keyboard-shortcuts-v1";
 export const DEFAULT_SHORTCUTS: ShortcutsConfig = {
   globalQuickCapture: "CommandOrControl+Shift+J",
   globalQuickTask: "CommandOrControl+Shift+T",
+  globalPomodoroToggle: "CommandOrControl+Shift+Space",
 };
 
 export const SHORTCUT_LABELS: Record<ShortcutId, string> = {
   globalQuickCapture: "Quick capture (Journal)",
   globalQuickTask: "Quick task (Trello)",
+  globalPomodoroToggle: "Play/pause do pomodoro ativo",
 };
 
 export function getShortcutsConfig(): ShortcutsConfig {
@@ -25,6 +27,7 @@ export function getShortcutsConfig(): ShortcutsConfig {
     return {
       globalQuickCapture: parsed.globalQuickCapture ?? DEFAULT_SHORTCUTS.globalQuickCapture,
       globalQuickTask: parsed.globalQuickTask ?? DEFAULT_SHORTCUTS.globalQuickTask,
+      globalPomodoroToggle: parsed.globalPomodoroToggle ?? DEFAULT_SHORTCUTS.globalPomodoroToggle,
     };
   } catch {
     return DEFAULT_SHORTCUTS;

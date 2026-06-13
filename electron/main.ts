@@ -355,11 +355,13 @@ function setupTrayIpc() {
 type ShortcutsConfig = {
   globalQuickCapture: string;
   globalQuickTask: string;
+  globalPomodoroToggle: string;
 };
 
 const DEFAULT_SHORTCUTS: ShortcutsConfig = {
   globalQuickCapture: "CommandOrControl+Shift+J",
   globalQuickTask: "CommandOrControl+Shift+T",
+  globalPomodoroToggle: "CommandOrControl+Shift+Space",
 };
 
 function registerGlobalShortcuts(cfg: ShortcutsConfig) {
@@ -380,6 +382,17 @@ function registerGlobalShortcuts(cfg: ShortcutsConfig) {
   } catch (e) {
     console.warn(`[shortcuts] erro ${cfg.globalQuickTask}:`, e);
   }
+  try {
+    const okPomo = globalShortcut.register(cfg.globalPomodoroToggle, () => {
+      // Manda evento pro renderer principal alternar pause/resume do timer ativo
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("pomodoro-toggle");
+      }
+    });
+    if (!okPomo) console.warn(`[shortcuts] falha em registrar ${cfg.globalPomodoroToggle}`);
+  } catch (e) {
+    console.warn(`[shortcuts] erro ${cfg.globalPomodoroToggle}:`, e);
+  }
 }
 
 function setupGlobalShortcuts() {
@@ -388,6 +401,7 @@ function setupGlobalShortcuts() {
     registerGlobalShortcuts({
       globalQuickCapture: cfg?.globalQuickCapture || DEFAULT_SHORTCUTS.globalQuickCapture,
       globalQuickTask: cfg?.globalQuickTask || DEFAULT_SHORTCUTS.globalQuickTask,
+      globalPomodoroToggle: cfg?.globalPomodoroToggle || DEFAULT_SHORTCUTS.globalPomodoroToggle,
     });
   });
 }

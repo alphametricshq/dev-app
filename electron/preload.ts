@@ -107,7 +107,18 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   // ==== Keyboard shortcuts ====
-  updateShortcuts(cfg: { globalQuickCapture: string; globalQuickTask: string }) {
+  updateShortcuts(cfg: {
+    globalQuickCapture: string;
+    globalQuickTask: string;
+    globalPomodoroToggle: string;
+  }) {
     ipcRenderer.send("update-shortcuts", cfg);
+  },
+
+  // mainWindow recebe o trigger do atalho global de play/pause do pomodoro
+  onPomodoroToggleShortcut(cb: () => void) {
+    const listener = () => cb();
+    ipcRenderer.on("pomodoro-toggle", listener);
+    return () => ipcRenderer.removeListener("pomodoro-toggle", listener);
   },
 });
