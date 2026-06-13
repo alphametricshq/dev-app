@@ -1,6 +1,64 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { db, initDb } from "@/lib/db";
+import { getSetting, setSetting } from "@/lib/db/queries";
 
 export const BACKUP_VERSION = 1;
+const AUTO_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const AUTO_BACKUP_KEEP = 10;
+const AUTO_BACKUP_SETTING = "last-auto-backup-at";
+
+function autoBackupDir(): string {
+  const base = process.env.DASHBOARD_DATA_PATH || path.join(os.homedir(), ".dopamine-dashboard");
+  return path.join(base, "auto-backups");
+}
+
+export function listAutoBackups(): { name: string; size: number; mtime: string }[] {
+  const dir = autoBackupDir();
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .map((name) => {
+      const st = fs.statSync(path.join(dir, name));
+      return { name, size: st.size, mtime: new Date(st.mtimeMs).toISOString() };
+    })
+    .sort((a, b) => (a.mtime < b.mtime ? 1 : -1));
+}
+
+export function readAutoBackup(name: string): unknown {
+  // Bloqueia path traversal: só nomes simples (sem barras nem ..)
+  if (!/^[A-Za-z0-9._-]+\.json$/.test(name)) throw new Error("Nome inválido");
+  const file = path.join(autoBackupDir(), name);
+  const raw = fs.readFileSync(file, "utf8");
+  return JSON.parse(raw);
+}
+
+export async function maybeRunAutoBackup(): Promise<{ ran: boolean; file?: string }> {
+  const last = await getSetting(AUTO_BACKUP_SETTING);
+  const lastMs = last ? Date.parse(last) : 0;
+  if (Number.isFinite(lastMs) && Date.now() - lastMs < AUTO_BACKUP_INTERVAL_MS) {
+    return { ran: false };
+  }
+  const dir = autoBackupDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const data = await exportData();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = path.join(dir, `backup-${stamp}.json`);
+  fs.writeFileSync(file, JSON.stringify(data), { mode: 0o600 });
+  await setSetting(AUTO_BACKUP_SETTING, new Date().toISOString());
+  // Limpa antigos, mantém os AUTO_BACKUP_KEEP mais recentes
+  const all = listAutoBackups();
+  for (const old of all.slice(AUTO_BACKUP_KEEP)) {
+    try {
+      fs.unlinkSync(path.join(dir, old.name));
+    } catch {
+      /* ignora */
+    }
+  }
+  return { ran: true, file: path.basename(file) };
+}
 
 const TABLES = [
   "pomodoro_sessions",
