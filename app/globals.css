@@ -7,6 +7,30 @@
     --accent: 265 85% 65%;
     --accent-hover: 265 85% 70%;
     --accent-subtle: 265 50% 25%;
+
+    /* Paleta DARK (default) */
+    --bg: 220 18% 7%;
+    --bg-subtle: 220 16% 10%;
+    --bg-card: 220 14% 12%;
+    --bg-hover: 220 14% 15%;
+    --border: 220 12% 18%;
+    --border-strong: 220 12% 24%;
+    --fg: 220 10% 95%;
+    --fg-muted: 220 8% 65%;
+    --fg-subtle: 220 8% 45%;
+  }
+  /* Paleta LIGHT */
+  html.light {
+    --bg: 0 0% 98%;
+    --bg-subtle: 220 12% 95%;
+    --bg-card: 0 0% 100%;
+    --bg-hover: 220 14% 92%;
+    --border: 220 12% 85%;
+    --border-strong: 220 12% 75%;
+    --fg: 220 14% 12%;
+    --fg-muted: 220 8% 35%;
+    --fg-subtle: 220 8% 55%;
+    color-scheme: light;
   }
   html {
     color-scheme: dark;
