@@ -21,6 +21,7 @@ import { LevelCard } from "@/components/gamification/level-card";
 import { ComparisonCard } from "@/components/analytics/comparison-card";
 import { InsightsBox } from "@/components/analytics/insights-box";
 import { GoalCelebration } from "@/components/goal-celebration";
+import { FirstRunBanner } from "./first-run-banner";
 import { ActivityFeed } from "./activity-feed";
 import { getRecentActivity } from "@/lib/activity-feed";
 import { localIsoDate } from "@/lib/local-date";
@@ -63,6 +64,7 @@ export async function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
+      <FirstRunBanner />
       <GoalCelebration goals={gami.goals} level={gami.level} />
       <DailyFocus dailyGoal={dailyGoal} pinnedCards={pinnedCards} />
 
