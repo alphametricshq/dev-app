@@ -97,6 +97,12 @@ export type WeeklyReview = {
   };
 
   insights: string[];
+
+  // Comparativo da semana atual vs média móvel das 4 semanas anteriores.
+  vsAvg4Weeks: {
+    github: { current: number; avg4w: number; deltaPct: number | null };
+    trello: { current: number; avg4w: number; deltaPct: number | null };
+  };
 };
 
 function buildDaily(start: Date, end: Date, source: Map<string, number>): DailyEntry[] {
@@ -149,6 +155,18 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
   const ghPrevDaily = buildDaily(prev.start, prev.end, ghMap);
   const ghTotal = totalIn(ghDaily);
   const ghPrev = totalIn(ghPrevDaily);
+
+  // Média das 4 semanas ANTERIORES à selecionada (offset +1 a +4)
+  function avgOf4Weeks(map: Map<string, number>): number {
+    let sum = 0;
+    for (let i = 1; i <= 4; i++) {
+      const w = getWeekRange(weeksAgo + i);
+      sum += totalIn(buildDaily(w.start, w.end, map));
+    }
+    return sum / 4;
+  }
+  const ghAvg4w = avgOf4Weeks(ghMap);
+  const trAvg4w = avgOf4Weeks(trMap);
 
   const trDaily = buildDaily(start, end, trMap);
   const trPrevDaily = buildDaily(prev.start, prev.end, trMap);
@@ -311,5 +329,9 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
       bestWeekday: bestDailyEntry?.weekday ?? null,
     },
     insights,
+    vsAvg4Weeks: {
+      github: { current: ghTotal, avg4w: ghAvg4w, deltaPct: pct(ghTotal, ghAvg4w) },
+      trello: { current: trTotal, avg4w: trAvg4w, deltaPct: pct(trTotal, trAvg4w) },
+    },
   };
 }
