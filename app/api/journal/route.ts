@@ -44,7 +44,8 @@ export async function POST(req: Request) {
       ? body.tags.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean)
       : [];
     const mood = typeof body.mood === "string" ? body.mood.slice(0, 4) : "";
-    const entry = await createJournalEntry({ content, tags, mood });
+    const energy = typeof body.energy === "number" ? body.energy : 0;
+    const entry = await createJournalEntry({ content, tags, mood, energy });
     return NextResponse.json({ ok: true, entry });
   } catch (e) {
     return NextResponse.json(

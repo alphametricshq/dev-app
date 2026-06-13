@@ -7,12 +7,13 @@ import { renderMarkdown } from "@/lib/markdown-simple";
 
 const MOODS = ["", "😀", "🙂", "😐", "😔", "😴", "🔥", "💡", "🎯"];
 
-type Draft = { content: string; tags: string[]; mood: string };
+type Draft = { content: string; tags: string[]; mood: string; energy?: number };
 
 export function EntryEditor({
   initialContent = "",
   initialTags = [],
   initialMood = "",
+  initialEnergy = 0,
   autoFocus = false,
   submitLabel = "Salvar",
   availableTags = [],
@@ -24,18 +25,20 @@ export function EntryEditor({
   initialContent?: string;
   initialTags?: string[];
   initialMood?: string;
+  initialEnergy?: number;
   autoFocus?: boolean;
   submitLabel?: string;
   availableTags?: string[];
   draftKey?: string;
   withPreview?: boolean;
-  onSubmit: (data: { content: string; tags: string[]; mood: string }) => Promise<void> | void;
+  onSubmit: (data: { content: string; tags: string[]; mood: string; energy: number }) => Promise<void> | void;
   onCancel?: () => void;
 }) {
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>(initialTags);
   const [tagInput, setTagInput] = useState("");
   const [mood, setMood] = useState(initialMood);
+  const [energy, setEnergy] = useState(initialEnergy);
   const [submitting, setSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(withPreview);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -48,10 +51,11 @@ export function EntryEditor({
     if (!raw) return;
     try {
       const d = JSON.parse(raw) as Draft;
-      if (d.content || (d.tags && d.tags.length > 0) || d.mood) {
+      if (d.content || (d.tags && d.tags.length > 0) || d.mood || d.energy) {
         setContent(d.content ?? "");
         setTags(d.tags ?? []);
         setMood(d.mood ?? "");
+        setEnergy(typeof d.energy === "number" ? d.energy : 0);
         setDraftRestored(true);
         setTimeout(() => setDraftRestored(false), 3000);
       }
@@ -65,14 +69,14 @@ export function EntryEditor({
   useEffect(() => {
     if (!draftKey || typeof window === "undefined") return;
     const id = setTimeout(() => {
-      if (content || tags.length > 0 || mood) {
-        localStorage.setItem(draftKey, JSON.stringify({ content, tags, mood }));
+      if (content || tags.length > 0 || mood || energy) {
+        localStorage.setItem(draftKey, JSON.stringify({ content, tags, mood, energy }));
       } else {
         localStorage.removeItem(draftKey);
       }
     }, 500);
     return () => clearTimeout(id);
-  }, [content, tags, mood, draftKey]);
+  }, [content, tags, mood, energy, draftKey]);
 
   useEffect(() => {
     if (autoFocus && ref.current) ref.current.focus();
@@ -103,10 +107,11 @@ export function EntryEditor({
     if (!c || submitting) return;
     setSubmitting(true);
     try {
-      await onSubmit({ content: c, tags, mood });
+      await onSubmit({ content: c, tags, mood, energy });
       setContent("");
       setTags([]);
       setMood("");
+      setEnergy(0);
       setTagInput("");
       if (draftKey && typeof window !== "undefined") {
         localStorage.removeItem(draftKey);
@@ -169,6 +174,25 @@ export function EntryEditor({
             >
               {m || <span className="text-[10px] text-fg-subtle">—</span>}
             </button>
+          ))}
+        </div>
+
+        {/* Energy 1-5 */}
+        <div className="flex items-center gap-1" title="Nível de energia (1=baixo, 5=alto)">
+          <span className="text-[10px] text-fg-subtle">⚡</span>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setEnergy(energy === n ? 0 : n)}
+              className={cn(
+                "h-3 w-3 rounded-full border transition-all",
+                energy >= n
+                  ? "border-warning bg-warning"
+                  : "border-border bg-bg-subtle hover:border-warning/50",
+              )}
+              title={`Energia ${n}/5`}
+            />
           ))}
         </div>
 

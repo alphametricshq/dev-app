@@ -5,6 +5,7 @@ export type JournalEntry = {
   content: string;
   tags: string[];
   mood: string;
+  energy: number; // 0 = não informado, 1-5
   created_at: string;
   updated_at: string;
 };
@@ -18,30 +19,38 @@ function rowToEntry(row: Record<string, unknown>): JournalEntry {
       .map((t) => t.trim())
       .filter(Boolean),
     mood: row.mood as string,
+    energy: row.energy == null ? 0 : Number(row.energy),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
+}
+
+function clampEnergy(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(5, Math.round(n)));
 }
 
 export async function createJournalEntry(input: {
   content: string;
   tags?: string[];
   mood?: string;
+  energy?: number;
 }): Promise<JournalEntry> {
   await initDb();
   const c = db();
   const tagsStr = (input.tags ?? []).join(",");
   const r = await c.execute({
-    sql: `INSERT INTO journal_entries (content, tags, mood) VALUES (?, ?, ?)
-          RETURNING id, content, tags, mood, created_at, updated_at`,
-    args: [input.content, tagsStr, input.mood ?? ""],
+    sql: `INSERT INTO journal_entries (content, tags, mood, energy) VALUES (?, ?, ?, ?)
+          RETURNING id, content, tags, mood, energy, created_at, updated_at`,
+    args: [input.content, tagsStr, input.mood ?? "", clampEnergy(input.energy)],
   });
   return rowToEntry(r.rows[0] as unknown as Record<string, unknown>);
 }
 
 export async function updateJournalEntry(
   id: number,
-  input: { content?: string; tags?: string[]; mood?: string },
+  input: { content?: string; tags?: string[]; mood?: string; energy?: number },
 ): Promise<void> {
   await initDb();
   const c = db();
@@ -58,6 +67,10 @@ export async function updateJournalEntry(
   if (input.mood !== undefined) {
     sets.push("mood = ?");
     args.push(input.mood);
+  }
+  if (input.energy !== undefined) {
+    sets.push("energy = ?");
+    args.push(clampEnergy(input.energy));
   }
   if (sets.length === 0) return;
   sets.push("updated_at = datetime('now')");
@@ -105,7 +118,7 @@ export async function listJournalEntries(opts?: {
   const limit = opts?.limit ?? 100;
   args.push(limit);
   const r = await c.execute({
-    sql: `SELECT id, content, tags, mood, created_at, updated_at
+    sql: `SELECT id, content, tags, mood, energy, created_at, updated_at
           FROM journal_entries ${whereSql}
           ORDER BY created_at DESC LIMIT ?`,
     args,

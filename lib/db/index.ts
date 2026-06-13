@@ -33,7 +33,20 @@ export async function initDb() {
   if (_initialized) return;
   const c = db();
   await c.executeMultiple(SCHEMA_SQL);
+  // Migrations idempotentes: ALTER TABLE quando a coluna ainda não existe
+  await migrateAddColumn(c, "journal_entries", "energy", "INTEGER NOT NULL DEFAULT 0");
   _initialized = true;
+}
+
+async function migrateAddColumn(c: Client, table: string, column: string, definition: string) {
+  try {
+    const r = await c.execute(`PRAGMA table_info(${table})`);
+    const has = r.rows.some((row) => (row as Record<string, unknown>).name === column);
+    if (has) return;
+    await c.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  } catch (e) {
+    console.warn(`[migration] falha em ${table}.${column}:`, e);
+  }
 }
 
 const SCHEMA_SQL = `
