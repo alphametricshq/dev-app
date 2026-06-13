@@ -126,6 +126,51 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
     }
   }
 
+  // Fim de mês: dias até o fim do mês corrente
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const daysToMonthEnd = Math.ceil((endOfMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysToMonthEnd >= 0 && daysToMonthEnd <= 7) {
+    const monthly = gami.goals.find((g) => g.period === "monthly");
+    if (monthly) {
+      const ghPct = Math.round(monthly.github.pct);
+      const trPct = Math.round(monthly.trello.pct);
+      const minPct = Math.min(ghPct, trPct);
+      const days = daysToMonthEnd === 0 ? "hoje" : `${daysToMonthEnd} dia${daysToMonthEnd === 1 ? "" : "s"}`;
+      let desc: string;
+      let weight: number;
+      if (monthly.completed) {
+        desc = `Mês acaba ${days === "hoje" ? "hoje" : `em ${days}`} — meta mensal já tá batida 🏆`;
+        weight = 2;
+      } else if (minPct >= 80) {
+        desc = `Mês acaba em ${days}, você tá em ${minPct}% da meta. Falta pouco!`;
+        weight = 5;
+      } else {
+        desc = `Mês acaba em ${days}, você tá em ${minPct}% da meta mensal.`;
+        weight = 4;
+      }
+      candidates.push({
+        title: monthly.completed
+          ? "Reta final do mês 🎯"
+          : `Fim do mês se aproximando`,
+        description: desc,
+        emoji: monthly.completed ? "🏆" : "📅",
+        weight,
+      });
+    }
+  }
+
+  // Fim de trimestre: se faltam até 14 dias e estamos no último mês do tri
+  const isQuarterEnd = (today.getMonth() + 1) % 3 === 0; // mar, jun, set, dez
+  if (isQuarterEnd && daysToMonthEnd <= 14) {
+    const quarter = Math.floor(today.getMonth() / 3) + 1;
+    candidates.push({
+      title: `Q${quarter} fechando em ${daysToMonthEnd} dia${daysToMonthEnd === 1 ? "" : "s"}`,
+      description: "Hora de revisar metas do trimestre e fechar fortes.",
+      emoji: "🏁",
+      weight: 4,
+    });
+  }
+
   // Sem nada hoje ainda
   const todayGh = contribs.find((c) => c.date === todayIso)?.count ?? 0;
   const todayTr = tasks.find((c) => c.date === todayIso)?.count ?? 0;
