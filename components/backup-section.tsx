@@ -1,15 +1,85 @@
 "use client";
 
 import { localIsoDate } from "@/lib/local-date";
-import { useRef, useState } from "react";
-import { Database, Download, Upload, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Database, Download, Upload, Loader2, History, RotateCw } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/dialogs";
+
+type AutoBackup = { name: string; size: number; mtime: string };
 
 export function BackupSection() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [autoBackups, setAutoBackups] = useState<AutoBackup[]>([]);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  async function loadAutoBackups() {
+    try {
+      const res = await fetch("/api/backup/auto");
+      const data = await res.json();
+      if (data?.ok) setAutoBackups(data.backups ?? []);
+    } catch {
+      /* ignora */
+    }
+  }
+
+  useEffect(() => {
+    loadAutoBackups();
+  }, []);
+
+  async function handleCreateAuto() {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/backup/auto", { method: "POST" });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error);
+      if (data.throttled) {
+        toast.info("Backup recente", "Já há um backup criado nas últimas 24h");
+      } else {
+        toast.success("Backup criado", data.file);
+      }
+      loadAutoBackups();
+    } catch (e) {
+      toast.error("Erro", e instanceof Error ? e.message : String(e));
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleRestoreAuto(name: string) {
+    const ok = await confirmDialog({
+      title: `Restaurar "${name}"?`,
+      description:
+        "⚠️ Vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, pinned cards, configs).",
+      confirmLabel: "Sobrescrever tudo",
+      danger: true,
+    });
+    if (!ok) return;
+    setRestoring(name);
+    try {
+      const res = await fetch("/api/backup/auto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restore: name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error ?? "Erro ao restaurar");
+      const summary = Object.entries(data.counts as Record<string, number>)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(" · ");
+      toast.success("Backup restaurado", summary || "0 registros");
+      setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+      toast.error("Erro ao restaurar", e instanceof Error ? e.message : String(e));
+    } finally {
+      setRestoring(null);
+    }
+  }
 
   async function handleExport() {
     if (exporting) return;
@@ -120,6 +190,53 @@ export function BackupSection() {
         <p>· Credenciais GitHub/Trello <strong className="text-fg-muted">não</strong> são exportadas (segurança).</p>
         <p>· Histórico de sync e contribuições GitHub são re-sincronizadas via API após restaurar.</p>
         <p>· Importar sobrescreve todos os dados — faça backup antes se necessário.</p>
+      </div>
+
+      {/* Backups automáticos */}
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="h-3.5 w-3.5 text-fg-muted" />
+            <h3 className="text-sm font-medium text-fg">Backups automáticos</h3>
+            <span className="text-[11px] text-fg-subtle">
+              (gera 1× a cada 24h, guarda últimos 10)
+            </span>
+          </div>
+          <button
+            onClick={handleCreateAuto}
+            disabled={creating}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-[11px] hover:bg-bg-hover disabled:opacity-50"
+          >
+            {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
+            Criar agora
+          </button>
+        </div>
+        {autoBackups.length === 0 ? (
+          <p className="py-3 text-center text-[11px] text-fg-subtle">
+            Nenhum backup automático ainda — o primeiro será criado no próximo ciclo de sync
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {autoBackups.map((b) => (
+              <li
+                key={b.name}
+                className="flex items-center gap-3 rounded-lg border border-border/50 bg-bg-subtle px-3 py-1.5 text-xs"
+              >
+                <span className="font-mono text-[11px] text-fg-muted">{b.name}</span>
+                <span className="ml-auto font-mono text-[10px] text-fg-subtle">
+                  {(b.size / 1024).toFixed(1)} KB
+                </span>
+                <button
+                  onClick={() => handleRestoreAuto(b.name)}
+                  disabled={restoring !== null}
+                  className="rounded-full border border-border bg-bg-card px-2 py-0.5 text-[10px] text-fg-muted hover:border-accent/40 hover:text-fg disabled:opacity-50"
+                >
+                  {restoring === b.name ? "Restaurando..." : "Restaurar"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

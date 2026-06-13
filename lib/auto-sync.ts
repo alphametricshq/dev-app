@@ -2,6 +2,7 @@ import { syncGithub } from "@/lib/integrations/github";
 import { syncTrello } from "@/lib/integrations/trello";
 import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
 import { syncProjectToTrello, getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
+import { maybeRunAutoBackup } from "@/lib/backup";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
 
@@ -46,6 +47,14 @@ async function tick() {
     } catch {
       // ignora
     }
+  }
+
+  // Backup automático (snapshot JSON; throttle interno de 24h por setting)
+  try {
+    const r = await maybeRunAutoBackup();
+    if (r.ran) console.log(`[auto-backup] criado: ${r.file}`);
+  } catch (e) {
+    console.warn("[auto-backup] falhou:", e);
   }
 }
 
