@@ -199,10 +199,62 @@ export function WeeklyReviewClient() {
             </div>
           )}
 
+          {/* Comparativo vs média móvel 4w */}
+          <FourWeekAverages data={review.vsAvg4Weeks} />
+
           {/* Insights */}
           <InsightsBox insights={review.insights} title="Resumo da semana" />
         </>
       )}
+    </div>
+  );
+}
+
+function FourWeekAverages({
+  data,
+}: {
+  data: {
+    github: { current: number; avg4w: number; deltaPct: number | null };
+    trello: { current: number; avg4w: number; deltaPct: number | null };
+  };
+}) {
+  return (
+    <div className="card">
+      <div className="mb-3 flex items-center gap-2">
+        <Award className="h-4 w-4 text-accent" />
+        <h3 className="text-sm font-semibold text-fg">Esta semana vs média 4 semanas</h3>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <AvgRow label="GitHub" current={data.github.current} avg={data.github.avg4w} deltaPct={data.github.deltaPct} />
+        <AvgRow label="Trello" current={data.trello.current} avg={data.trello.avg4w} deltaPct={data.trello.deltaPct} />
+      </div>
+    </div>
+  );
+}
+
+function AvgRow({
+  label,
+  current,
+  avg,
+  deltaPct,
+}: {
+  label: string;
+  current: number;
+  avg: number;
+  deltaPct: number | null;
+}) {
+  const sign = deltaPct == null ? "" : deltaPct >= 0 ? "+" : "";
+  const color = deltaPct == null ? "text-fg-muted" : deltaPct >= 0 ? "text-success" : "text-danger";
+  return (
+    <div className="rounded-lg border border-border/50 bg-bg-subtle px-3 py-2.5">
+      <div className="text-[10px] uppercase tracking-wider text-fg-muted">{label}</div>
+      <div className="mt-0.5 flex items-baseline gap-2">
+        <span className="text-xl font-semibold text-fg">{current}</span>
+        <span className="text-[11px] text-fg-subtle">vs {avg.toFixed(1)} média</span>
+      </div>
+      <div className={`text-xs font-medium ${color}`}>
+        {deltaPct == null ? "—" : `${sign}${Math.round(deltaPct)}% vs média 4w`}
+      </div>
     </div>
   );
 }
