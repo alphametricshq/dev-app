@@ -23,6 +23,7 @@ import { Plus, Loader2, AlertCircle, Tag, X } from "lucide-react";
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { CardModal } from "./card-modal";
+import { SavedFilters } from "./saved-filters";
 import { toast } from "@/lib/toast";
 import type { TrelloBoardFull, TrelloCardItem, TrelloListItem } from "@/lib/integrations/trello-api";
 import type { Template, CardTemplateData } from "@/lib/db/templates-queries";
@@ -549,6 +550,12 @@ export function KanbanBoard({ boardId }: { boardId: string }) {
           )}
         </div>
       )}
+
+      <SavedFilters
+        boardId={boardId}
+        currentLabelIds={Array.from(labelFilter)}
+        onApply={(ids) => setLabelFilter(new Set(ids))}
+      />
 
       <DndContext
         sensors={sensors}
