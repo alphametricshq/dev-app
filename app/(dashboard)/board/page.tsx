@@ -6,6 +6,7 @@ import { Settings, TriangleAlert } from "lucide-react";
 import { Topbar } from "@/components/topbar";
 import { BoardSelector } from "@/components/kanban/board-selector";
 import { KanbanBoard } from "@/components/kanban/kanban-board";
+import { StickyNotes } from "@/components/kanban/sticky-notes";
 
 export default function BoardPage() {
   const [boardId, setBoardId] = useState<string | null>(null);
@@ -59,7 +60,10 @@ export default function BoardPage() {
             <p className="max-w-sm text-xs text-fg-muted">{error}</p>
           </div>
         ) : boardId ? (
-          <KanbanBoard key={boardId} boardId={boardId} />
+          <>
+            <KanbanBoard key={boardId} boardId={boardId} />
+            <StickyNotes boardId={boardId} />
+          </>
         ) : boardCount === 0 ? (
           <div className="flex h-[400px] items-center justify-center text-fg-muted">
             Nenhum board na sua conta do Trello
