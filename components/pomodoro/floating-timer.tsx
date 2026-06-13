@@ -21,6 +21,8 @@ const TYPE_COLORS: Record<SessionType, { ring: string; bar: string; text: string
   long_break: { ring: "stroke-warning", bar: "bg-warning", text: "text-warning", icon: Coffee },
 };
 
+type DailyGoalProgress = { pct: number; done: boolean };
+
 export function FloatingTimer() {
   const pathname = usePathname();
   const state = usePomodoroState();
@@ -28,6 +30,7 @@ export function FloatingTimer() {
   const progress = useProgressPct();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [isElectron, setIsElectron] = useState(false);
+  const [goalProgress, setGoalProgress] = useState<DailyGoalProgress | null>(null);
 
   useEffect(() => {
     const api = (window as unknown as { electron?: ElectronAPI }).electron;
@@ -35,6 +38,33 @@ export function FloatingTimer() {
     const off = api?.onPomodoroOverlayClosed?.(() => setOverlayOpen(false));
     return () => {
       off?.();
+    };
+  }, []);
+
+  // Fetch da meta diária ao montar e a cada 2min — pra mostrar a mini barra
+  useEffect(() => {
+    let cancel = false;
+    async function fetchGoals() {
+      try {
+        const r = await fetch("/api/goals/progress");
+        const d = await r.json();
+        if (cancel || !d?.ok) return;
+        const daily = (d.goals as { period: string; github: { pct: number }; trello: { pct: number }; completed: boolean }[]).find(
+          (g) => g.period === "daily",
+        );
+        if (!daily) return;
+        // Combina GH + Trello: média ponderada simples
+        const combined = Math.min(100, (daily.github.pct + daily.trello.pct) / 2);
+        setGoalProgress({ pct: combined, done: daily.completed });
+      } catch {
+        /* ignora — sem dados, sem barra */
+      }
+    }
+    fetchGoals();
+    const id = setInterval(fetchGoals, 120_000);
+    return () => {
+      cancel = true;
+      clearInterval(id);
     };
   }, []);
 
@@ -63,7 +93,8 @@ export function FloatingTimer() {
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-border bg-bg-card px-4 py-2 shadow-2xl backdrop-blur-sm">
+    <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 overflow-hidden rounded-full border border-border bg-bg-card shadow-2xl backdrop-blur-sm">
+      <div className="flex items-center gap-3 px-4 py-2">
       {/* Timer + label */}
       <Link href="/foco" className="flex items-center gap-2.5 text-fg hover:opacity-80">
         <div className="relative flex h-9 w-9 items-center justify-center">
@@ -118,6 +149,22 @@ export function FloatingTimer() {
           </button>
         )}
       </div>
+      </div>
+      {/* Mini barra de meta diária no rodapé do banner */}
+      {goalProgress && (
+        <div
+          className="h-[3px] w-full bg-bg-subtle"
+          title={`Meta diária: ${Math.round(goalProgress.pct)}%${goalProgress.done ? " — batida 🎯" : ""}`}
+        >
+          <div
+            className={cn(
+              "h-full transition-all duration-700",
+              goalProgress.done ? "bg-success" : "bg-accent",
+            )}
+            style={{ width: `${goalProgress.pct}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
