@@ -257,7 +257,7 @@ export function ProjectBoard() {
   if (!data) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
@@ -365,7 +365,7 @@ export function ProjectBoard() {
       )}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2">
           {data.meta.statusOptions.map((opt) => (
             <StatusColumn key={opt.id} name={opt.name} items={itemsOf(opt.name)} />
           ))}
