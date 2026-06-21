@@ -17,18 +17,16 @@ export function StatCard({
   icon?: LucideIcon;
   trend?: { value: number; label: string };
   sparkline?: number[];
-  accent?: "default" | "github" | "trello";
+  accent?: "default" | "github";
 }) {
   const accentClass = {
     default: "text-accent bg-accent/15",
     github: "text-success bg-success/15",
-    trello: "text-warning bg-warning/15",
   }[accent];
 
   const sparklineColor = {
     default: "hsl(var(--accent))",
     github: "hsl(150 60% 50%)",
-    trello: "hsl(40 90% 60%)",
   }[accent];
 
   return (

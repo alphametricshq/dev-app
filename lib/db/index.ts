@@ -86,33 +86,6 @@ CREATE TABLE IF NOT EXISTS github_repo_stats (
   PRIMARY KEY (date, repo_name)
 );
 
-CREATE TABLE IF NOT EXISTS trello_tasks_completed (
-  id TEXT PRIMARY KEY,
-  card_id TEXT NOT NULL,
-  card_name TEXT NOT NULL,
-  board_id TEXT NOT NULL,
-  board_name TEXT,
-  list_id TEXT NOT NULL,
-  list_name TEXT,
-  completed_at TEXT NOT NULL,
-  url TEXT,
-  raw_action_id TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_trello_tasks_completed_at ON trello_tasks_completed(completed_at DESC);
-CREATE INDEX IF NOT EXISTS idx_trello_tasks_board ON trello_tasks_completed(board_id);
-
-CREATE TABLE IF NOT EXISTS pinned_cards (
-  card_id TEXT PRIMARY KEY,
-  board_id TEXT,
-  card_name TEXT,
-  list_name TEXT,
-  url TEXT,
-  pinned_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_pinned_cards_at ON pinned_cards(pinned_at DESC);
-
 CREATE TABLE IF NOT EXISTS habits (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -169,15 +142,4 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_templates_type ON templates(type, name);
-
-CREATE TABLE IF NOT EXISTS issue_card_links (
-  issue_key TEXT PRIMARY KEY,
-  issue_url TEXT,
-  issue_title TEXT,
-  card_id TEXT,
-  card_url TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_issue_links_created ON issue_card_links(created_at DESC);
 `;

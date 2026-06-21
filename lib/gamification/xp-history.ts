@@ -1,6 +1,5 @@
 import {
   XP_PER_GITHUB_CONTRIB,
-  XP_PER_TRELLO_TASK,
   XP_PER_ACTIVE_DAY,
   XP_PER_POMODORO,
   levelFromXp,
@@ -12,7 +11,6 @@ export type XpHistoryPoint = {
   level: number;
   delta: number;
   github: number;
-  trello: number;
   pomodoros: number;
 };
 
@@ -28,7 +26,6 @@ export type XpHistory = {
  */
 export function computeXpHistory(input: {
   contribs: { date: string; count: number }[];
-  tasksByDay: { date: string; count: number }[];
   pomodorosByDay: { date: string; count: number }[];
   days?: number;
 }): XpHistory {
@@ -37,16 +34,12 @@ export function computeXpHistory(input: {
   today.setHours(0, 0, 0, 0);
 
   const ghMap = new Map(input.contribs.map((d) => [d.date, d.count]));
-  const trMap = new Map(input.tasksByDay.map((d) => [d.date, d.count]));
   const pomoMap = new Map(input.pomodorosByDay.map((d) => [d.date, d.count]));
 
-  // Para o XP acumulado total ser consistente, somamos TUDO antes do início
-  // da janela (em todo histórico que temos de contribs/tasks/pomos).
   let cumXp = 0;
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - (days - 1));
 
-  // Pré-soma: para cada série, soma tudo cuja data < startDate
   function preSum(map: Map<string, number>, perUnit: number): number {
     let total = 0;
     for (const [date, count] of map) {
@@ -54,16 +47,13 @@ export function computeXpHistory(input: {
     }
     return total;
   }
-  // Pré-soma de active days
   function preSumActive(): number {
     const dayUnion = new Set<string>();
     for (const [d, c] of ghMap) if (c > 0 && d < toIso(startDate)) dayUnion.add(d);
-    for (const [d, c] of trMap) if (c > 0 && d < toIso(startDate)) dayUnion.add(d);
     for (const [d, c] of pomoMap) if (c > 0 && d < toIso(startDate)) dayUnion.add(d);
     return dayUnion.size * XP_PER_ACTIVE_DAY;
   }
   cumXp += preSum(ghMap, XP_PER_GITHUB_CONTRIB);
-  cumXp += preSum(trMap, XP_PER_TRELLO_TASK);
   cumXp += preSum(pomoMap, XP_PER_POMODORO);
   cumXp += preSumActive();
 
@@ -76,13 +66,11 @@ export function computeXpHistory(input: {
     d.setDate(startDate.getDate() + i);
     const iso = toIso(d);
     const gh = ghMap.get(iso) ?? 0;
-    const tr = trMap.get(iso) ?? 0;
     const po = pomoMap.get(iso) ?? 0;
     const ghXp = gh * XP_PER_GITHUB_CONTRIB;
-    const trXp = tr * XP_PER_TRELLO_TASK;
     const poXp = po * XP_PER_POMODORO;
-    const activeXp = gh > 0 || tr > 0 || po > 0 ? XP_PER_ACTIVE_DAY : 0;
-    const delta = ghXp + trXp + poXp + activeXp;
+    const activeXp = gh > 0 || po > 0 ? XP_PER_ACTIVE_DAY : 0;
+    const delta = ghXp + poXp + activeXp;
     cumXp += delta;
     const lv = levelFromXp(cumXp).level;
     if (lv > prevLevel) {
@@ -91,7 +79,7 @@ export function computeXpHistory(input: {
       }
       prevLevel = lv;
     }
-    points.push({ date: iso, xp: cumXp, level: lv, delta, github: ghXp, trello: trXp, pomodoros: poXp });
+    points.push({ date: iso, xp: cumXp, level: lv, delta, github: ghXp, pomodoros: poXp });
   }
 
   return { points, levelUps };

@@ -1,20 +1,9 @@
 import Link from "next/link";
-import {
-  getGithubContributions,
-  getTrelloCompletedByDay,
-  getTrelloByBoard,
-  getRecentTrelloTasks,
-  getLastSyncs,
-  getValidatedPinnedCards,
-} from "@/lib/db/queries";
+import { getGithubContributions, getLastSyncs } from "@/lib/db/queries";
 import { getGamificationSummary } from "@/lib/gamification";
 import { getGithubAnalytics } from "@/lib/analytics/github";
-import { getTrelloAnalytics } from "@/lib/analytics/trello";
 import { StatCard } from "./stat-card";
 import { GithubHeatmap } from "./github-heatmap";
-import { TasksTimeseries } from "./tasks-timeseries";
-import { BoardsBreakdown } from "./boards-breakdown";
-import { RecentTasks } from "./recent-tasks";
 import { SyncStatus } from "./sync-status";
 import { DailyFocus } from "./daily-focus";
 import { LevelCard } from "@/components/gamification/level-card";
@@ -25,52 +14,41 @@ import { FirstRunBanner } from "./first-run-banner";
 import { ActivityFeed } from "./activity-feed";
 import { getRecentActivity } from "@/lib/activity-feed";
 import { localIsoDate } from "@/lib/local-date";
-import { GitCommit, CheckSquare, Flame, TrendingUp, BarChart3 } from "lucide-react";
+import { GitCommit, Flame, TrendingUp, BarChart3 } from "lucide-react";
 
 export async function OverviewDashboard() {
-  const [contribs, byDay, byBoard, recent, syncs, gami, ghAnalytics, trAnalytics, pinnedCards, todayActivity] = await Promise.all([
+  const [contribs, syncs, gami, ghAnalytics, todayActivity] = await Promise.all([
     getGithubContributions(365),
-    getTrelloCompletedByDay(90),
-    getTrelloByBoard(90),
-    getRecentTrelloTasks(8),
     getLastSyncs(),
     getGamificationSummary(),
     getGithubAnalytics(),
-    getTrelloAnalytics(),
-    getValidatedPinnedCards(3),
     getRecentActivity(7, 40),
   ]);
   const dailyGoal = gami.goals.find((g) => g.period === "daily")!;
 
-  const combinedInsights = [...ghAnalytics.insights, ...trAnalytics.insights].slice(0, 5);
+  const insights = ghAnalytics.insights.slice(0, 5);
 
   const ghTotal = contribs.reduce((s, d) => s + d.count, 0);
   const ghLast7Sum = sumLastDays(contribs, 0, 7);
   const ghPrev7Sum = sumLastDays(contribs, 7, 14);
   const ghLast30 = sumLastDays(contribs, 0, 30);
   const ghPrev30 = sumLastDays(contribs, 30, 60);
-  const taskTotal = byDay.reduce((s, d) => s + d.count, 0);
-  const taskLast30 = sumLastDays(byDay, 0, 30);
-  const taskPrev30 = sumLastDays(byDay, 30, 60);
   const streak = currentStreak(contribs);
   const longestStreak = computeLongestStreak(contribs);
-  const avgPerDay = taskTotal > 0 ? (taskTotal / 90).toFixed(1) : "0";
   const ghLast7 = contribs.slice(-7).map((d) => d.count);
-  const taskLast7 = lastNDays(byDay, 7);
 
   const ghLast7Trend = computeTrend(ghLast7Sum, ghPrev7Sum);
   const ghLast30Trend = computeTrend(ghLast30, ghPrev30);
-  const taskTrend = computeTrend(taskLast30, taskPrev30);
 
   return (
     <div className="space-y-6">
       <FirstRunBanner />
       <GoalCelebration goals={gami.goals} level={gami.level} />
-      <DailyFocus dailyGoal={dailyGoal} pinnedCards={pinnedCards} />
+      <DailyFocus dailyGoal={dailyGoal} />
 
       <LevelCard data={gami} compact />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="GitHub · 7 dias"
           value={ghLast7Sum.toLocaleString("pt-BR")}
@@ -88,15 +66,6 @@ export async function OverviewDashboard() {
           trend={ghLast30Trend}
           sparkline={ghLast7}
           accent="github"
-        />
-        <StatCard
-          label="Tarefas · 30 dias"
-          value={taskLast30.toLocaleString("pt-BR")}
-          hint={`média ${avgPerDay}/dia · 90 dias`}
-          icon={CheckSquare}
-          trend={taskTrend}
-          sparkline={taskLast7}
-          accent="trello"
         />
         <StatCard
           label="Streak atual"
@@ -125,56 +94,26 @@ export async function OverviewDashboard() {
           </div>
           <div className="flex gap-3 text-[11px] text-fg-muted">
             <Link href="/github" className="hover:text-fg">Detalhes GitHub →</Link>
-            <Link href="/trello" className="hover:text-fg">Detalhes Trello →</Link>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4">
           <ComparisonCard
             label="GitHub · 7 dias"
             comparison={ghAnalytics.weekly}
             unit="commits"
             accent="github"
           />
-          <ComparisonCard
-            label="Trello · 7 dias"
-            comparison={trAnalytics.weekly}
-            unit="tarefas"
-            accent="trello"
-          />
         </div>
 
-        {combinedInsights.length > 0 && <InsightsBox insights={combinedInsights} />}
+        {insights.length > 0 && <InsightsBox insights={insights} />}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <TasksTimeseries data={byDay} dailyTarget={dailyGoal.trello.target} />
-        </div>
-        <BoardsBreakdown data={byBoard} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ActivityFeed events={todayActivity} />
-        <RecentTasks tasks={recent} />
-      </div>
+      <ActivityFeed events={todayActivity} />
 
       <SyncStatus syncs={syncs} />
     </div>
   );
-}
-
-function lastNDays(data: { date: string; count: number }[], n: number): number[] {
-  const map = new Map(data.map((d) => [d.date, d.count]));
-  const result: number[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    result.push(map.get(localIsoDate(d)) ?? 0);
-  }
-  return result;
 }
 
 function sumLastDays(
@@ -226,7 +165,6 @@ function currentStreak(contribs: { date: string; count: number }[]): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Pula o dia atual se ainda não tem contribuição (não quebra streak)
   const todayIso = localIsoDate(today);
   const startOffset = (map.get(todayIso) ?? 0) > 0 ? 0 : 1;
 

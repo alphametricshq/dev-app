@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Target, GitCommit, CheckSquare, Save, Loader2, RotateCcw } from "lucide-react";
+import { Target, GitCommit, Save, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { confirmDialog } from "@/lib/dialogs";
 
 type GoalsConfig = {
-  daily: { github: number; trello: number };
-  weekly: { github: number; trello: number };
-  monthly: { github: number; trello: number };
+  daily: { github: number };
+  weekly: { github: number };
+  monthly: { github: number };
 };
 
 const PERIODS = [
@@ -36,7 +36,7 @@ export function GoalsForm() {
       .finally(() => setLoading(false));
   }, []);
 
-  function update(period: keyof GoalsConfig, source: "github" | "trello", value: number) {
+  function update(period: keyof GoalsConfig, source: "github", value: number) {
     setGoals((prev) =>
       prev ? { ...prev, [period]: { ...prev[period], [source]: value } } : prev,
     );
@@ -106,18 +106,12 @@ export function GoalsForm() {
             <div className="mb-2 text-xs font-medium uppercase tracking-wider text-fg-muted">
               {period.label}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div>
               <NumberField
                 icon={<GitCommit className="h-3.5 w-3.5 text-success" />}
                 label="GitHub"
                 value={goals[period.id].github}
                 onChange={(v) => update(period.id, "github", v)}
-              />
-              <NumberField
-                icon={<CheckSquare className="h-3.5 w-3.5 text-warning" />}
-                label="Trello"
-                value={goals[period.id].trello}
-                onChange={(v) => update(period.id, "trello", v)}
               />
             </div>
           </div>

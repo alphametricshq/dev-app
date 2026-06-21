@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const syncs = await getLastSyncs();
-    const configured =
-      !!getCredential("GITHUB_TOKEN") || !!getCredential("TRELLO_API_KEY");
+    const configured = !!getCredential("GITHUB_TOKEN");
 
     // Última sync mais recente (getLastSyncs já vem ordenado por started_at DESC)
     const latest = syncs[0] ?? null;

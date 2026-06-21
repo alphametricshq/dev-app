@@ -6,20 +6,19 @@ import { XpHistoryChart } from "@/components/gamification/xp-history-chart";
 import { PatternsCard } from "@/components/gamification/patterns-card";
 import { getGamificationSummary } from "@/lib/gamification";
 import { computeXpHistory } from "@/lib/gamification/xp-history";
-import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 import { getPomodoroByDay } from "@/lib/db/pomodoro-queries";
 import { Award, Flame, Target } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConquistasPage() {
-  const [data, contribs, tasksByDay, pomodorosByDay] = await Promise.all([
+  const [data, contribs, pomodorosByDay] = await Promise.all([
     getGamificationSummary(),
     getGithubContributions(365),
-    getTrelloCompletedByDay(365),
     getPomodoroByDay(90),
   ]);
-  const xpHistory = computeXpHistory({ contribs, tasksByDay, pomodorosByDay, days: 90 });
+  const xpHistory = computeXpHistory({ contribs, pomodorosByDay, days: 90 });
 
   return (
     <>

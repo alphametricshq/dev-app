@@ -29,11 +29,7 @@ function maskedView() {
       view[key] = { set: false, preview: null, source };
       continue;
     }
-    if (
-      key === "GITHUB_USERNAME" ||
-      key === "TRELLO_DONE_LIST_IDS" ||
-      key === "SYNC_INTERVAL_MIN"
-    ) {
+    if (key === "GITHUB_USERNAME" || key === "SYNC_INTERVAL_MIN") {
       view[key] = { set: true, preview: String(v), source };
     } else {
       const s = String(v);

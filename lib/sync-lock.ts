@@ -1,6 +1,5 @@
-// Lock simples por chave pra impedir syncs concorrentes (auto-sync + botão
-// manual ao mesmo tempo criavam cards duplicados no Trello: ambos liam
-// issue_card_links antes de qualquer um gravar).
+// Lock simples por chave pra impedir syncs concorrentes (ex: auto-sync + botão
+// manual disparando ao mesmo tempo).
 // Usa globalThis pra sobreviver a múltiplas instâncias do módulo em dev.
 
 const LOCKS_KEY = Symbol.for("dashboard.syncLocks");

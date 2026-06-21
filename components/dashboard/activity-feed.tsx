@@ -6,7 +6,6 @@ const TYPE_COLORS: Record<ActivityType, string> = {
   pomodoro: "bg-warning/15 text-warning",
   habit: "bg-accent/15 text-accent",
   journal: "bg-success/15 text-success",
-  trello: "bg-warning/15 text-warning",
 };
 
 function parseDate(ts: string): Date {

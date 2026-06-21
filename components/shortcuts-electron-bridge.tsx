@@ -9,10 +9,8 @@ type API = {
   isElectron?: boolean;
   isOverlay?: boolean;
   isQuickCapture?: boolean;
-  isQuickTask?: boolean;
   updateShortcuts?: (cfg: {
     globalQuickCapture: string;
-    globalQuickTask: string;
     globalPomodoroToggle: string;
   }) => void;
   onPomodoroToggleShortcut?: (cb: () => void) => () => void;
@@ -26,7 +24,7 @@ type API = {
 export function ShortcutsElectronBridge() {
   useEffect(() => {
     const api = (window as unknown as { electron?: API }).electron;
-    if (!api?.isElectron || api.isOverlay || api.isQuickCapture || api.isQuickTask) return;
+    if (!api?.isElectron || api.isOverlay || api.isQuickCapture) return;
 
     function push() {
       const cfg = getShortcutsConfig();

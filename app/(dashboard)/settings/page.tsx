@@ -8,8 +8,6 @@ import { DesktopNotificationsToggle } from "@/components/desktop-notifications-t
 import { StreakWarningSettings } from "@/components/streak-warning-settings";
 import { ShortcutsEditor } from "@/components/shortcuts-editor";
 import { TemplatesManager } from "@/components/templates-manager";
-import { IssuesTrelloSettings } from "@/components/issues-trello-settings";
-import { ProjectTrelloSettings } from "@/components/project-trello-settings";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +17,6 @@ const SECTIONS = [
   { id: "atalhos", label: "Atalhos" },
   { id: "metas", label: "Metas & templates" },
   { id: "credenciais", label: "Credenciais & sync" },
-  { id: "integracoes", label: "Integrações" },
   { id: "dados", label: "Dados" },
 ];
 
@@ -61,11 +58,6 @@ export default function SettingsPage() {
 
         <SettingsSection id="credenciais" title="Credenciais & sync">
           <SettingsForm initialIntervalMin={autoSyncMin} />
-        </SettingsSection>
-
-        <SettingsSection id="integracoes" title="Integrações">
-          <ProjectTrelloSettings />
-          <IssuesTrelloSettings />
         </SettingsSection>
 
         <SettingsSection id="dados" title="Dados">

@@ -31,7 +31,7 @@ export function FirstRunBanner() {
       .then((r) => r.json())
       .then((data: CredentialsResp) => {
         if (!data?.ok || !data.credentials) return;
-        const required = ["GITHUB_TOKEN", "GITHUB_USERNAME", "TRELLO_API_KEY", "TRELLO_TOKEN"];
+        const required = ["GITHUB_TOKEN", "GITHUB_USERNAME"];
         const out: string[] = [];
         for (const k of required) {
           if (!data.credentials[k]?.set) out.push(k);

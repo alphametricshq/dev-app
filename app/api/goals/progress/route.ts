@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { computeGoals } from "@/lib/gamification/goals";
-import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [contribs, tasksByDay] = await Promise.all([
-      getGithubContributions(60),
-      getTrelloCompletedByDay(60),
-    ]);
-    const goals = await computeGoals({ contribs, tasksByDay });
+    const contribs = await getGithubContributions(60);
+    const goals = await computeGoals({ contribs });
     return NextResponse.json({ ok: true, goals });
   } catch (e) {
     return NextResponse.json(

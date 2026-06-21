@@ -1,4 +1,4 @@
-import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 import { listHabitsWithStats } from "@/lib/db/habits-queries";
 import { getPomodoroStats } from "@/lib/db/pomodoro-queries";
 import { localIsoDate } from "@/lib/local-date";
@@ -38,7 +38,6 @@ function computeStreaks(contribs: { date: string; count: number }[]): {
     } else run = 0;
   }
 
-  // Streak atual (contando do hoje pra tras)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayIso = localIsoDate(today);
@@ -56,26 +55,20 @@ function computeStreaks(contribs: { date: string; count: number }[]): {
 }
 
 export async function getGamificationSummary(): Promise<GamificationSummary> {
-  const [contribs, tasksByDay, habits, pomodoroStats] = await Promise.all([
+  const [contribs, habits, pomodoroStats] = await Promise.all([
     getGithubContributions(365),
-    getTrelloCompletedByDay(365),
     listHabitsWithStats(),
     getPomodoroStats(),
   ]);
 
   const totalGithub = contribs.reduce((s, d) => s + d.count, 0);
-  const totalTrello = tasksByDay.reduce((s, d) => s + d.count, 0);
-  const activeDays =
-    contribs.filter((d) => d.count > 0).length +
-    tasksByDay.filter((d) => d.count > 0 && !contribs.find((c) => c.date === d.date && c.count > 0))
-      .length;
+  const activeDays = contribs.filter((d) => d.count > 0).length;
   const { current: currentStreak, longest: longestStreak } = computeStreaks(contribs);
   const bestHabitStreak = habits.reduce((max, h) => Math.max(max, h.longestStreak), 0);
   const bestPomodoroDay = pomodoroStats.longestDay?.sessions ?? 0;
 
   const xpBreakdown = computeXp({
     totalGithubContribs: totalGithub,
-    totalTrelloTasks: totalTrello,
     activeDays,
     currentStreak,
     totalPomodoros: pomodoroStats.totalSessions,
@@ -83,9 +76,7 @@ export async function getGamificationSummary(): Promise<GamificationSummary> {
   const lvl = levelFromXp(xpBreakdown.total);
   const badges = evaluateBadges({
     contribs,
-    tasksByDay,
     totalGithub,
-    totalTrello,
     currentStreak,
     longestStreak,
     activeDays,
@@ -94,7 +85,7 @@ export async function getGamificationSummary(): Promise<GamificationSummary> {
     totalPomodoros: pomodoroStats.totalSessions,
     bestPomodoroDay,
   });
-  const goals = await computeGoals({ contribs, tasksByDay });
+  const goals = await computeGoals({ contribs });
 
   return {
     xp: xpBreakdown.total,

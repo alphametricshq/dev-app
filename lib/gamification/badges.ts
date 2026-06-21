@@ -2,9 +2,7 @@ import type { GithubContribDay } from "@/lib/db/queries";
 
 export type BadgeContext = {
   contribs: GithubContribDay[];
-  tasksByDay: { date: string; count: number }[];
   totalGithub: number;
-  totalTrello: number;
   currentStreak: number;
   longestStreak: number;
   activeDays: number;
@@ -72,38 +70,6 @@ const BADGES: BadgeDefinition[] = [
     check: (c) => ({
       unlocked: c.totalGithub >= 1000,
       progress: { current: Math.min(c.totalGithub, 1000), target: 1000 },
-    }),
-  },
-
-  // ========= Trello milestones =========
-  {
-    id: "first-task",
-    title: "Primeira tarefa",
-    description: "Conclua sua primeira tarefa no Trello",
-    emoji: "✅",
-    check: (c) => ({
-      unlocked: c.totalTrello >= 1,
-      progress: { current: Math.min(c.totalTrello, 1), target: 1 },
-    }),
-  },
-  {
-    id: "trello-25",
-    title: "Vinte e cinco",
-    description: "25 tarefas concluídas",
-    emoji: "📦",
-    check: (c) => ({
-      unlocked: c.totalTrello >= 25,
-      progress: { current: Math.min(c.totalTrello, 25), target: 25 },
-    }),
-  },
-  {
-    id: "trello-100",
-    title: "Cem tarefas",
-    description: "100 tarefas concluídas",
-    emoji: "🎯",
-    check: (c) => ({
-      unlocked: c.totalTrello >= 100,
-      progress: { current: Math.min(c.totalTrello, 100), target: 100 },
     }),
   },
 
@@ -198,29 +164,6 @@ const BADGES: BadgeDefinition[] = [
       return { unlocked: max >= 10, progress: { current: Math.min(max, 10), target: 10 } };
     },
   },
-  {
-    id: "task-marathon",
-    title: "Foco total",
-    description: "Conclua 5+ tarefas em um único dia",
-    emoji: "🎪",
-    check: (c) => {
-      const max = Math.max(0, ...c.tasksByDay.map((d) => d.count));
-      return { unlocked: max >= 5, progress: { current: Math.min(max, 5), target: 5 } };
-    },
-  },
-  {
-    id: "balanced",
-    title: "Balanceado",
-    description: "Tenha contribuições GitHub E tarefas Trello no mesmo dia",
-    emoji: "⚖️",
-    check: (c) => {
-      const ghDates = new Set(c.contribs.filter((d) => d.count > 0).map((d) => d.date));
-      const trDates = c.tasksByDay.filter((d) => d.count > 0).map((d) => d.date);
-      const hasOverlap = trDates.some((d) => ghDates.has(d));
-      return { unlocked: hasOverlap };
-    },
-  },
-
   // ========= Hábitos =========
   {
     id: "first-habit",

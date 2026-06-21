@@ -5,7 +5,6 @@ import {
   CalendarDays,
   TrendingUp,
   GitCommit,
-  CheckSquare,
   Sparkles,
   Award,
   Trophy,
@@ -140,17 +139,15 @@ export function WeeklyReviewClient() {
       {!loading && review && (
         <>
           {/* Hero stats */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <HeroStat icon={GitCommit} label="Commits" value={review.github.current} accent="github" />
-            <HeroStat icon={CheckSquare} label="Tarefas" value={review.trello.current} accent="trello" />
             <HeroStat icon={Sparkles} label="XP estimado" value={review.xp.earned.toLocaleString("pt-BR")} accent="default" />
             <HeroStat icon={CalendarDays} label="Dias ativos" value={`${review.highlights.activeDays}/7`} accent="default" />
           </div>
 
           {/* Comparações */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             <ComparisonCard label="GitHub vs semana anterior" comparison={review.github} unit="commits" accent="github" />
-            <ComparisonCard label="Trello vs semana anterior" comparison={review.trello} unit="tarefas" accent="trello" />
           </div>
 
           {/* Dia a dia */}
@@ -178,27 +175,6 @@ export function WeeklyReviewClient() {
             </div>
           )}
 
-          {/* Top boards */}
-          {review.trello.topBoards.length > 0 && (
-            <div className="card">
-              <div className="mb-3 flex items-center gap-2">
-                <Award className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-semibold text-fg">Top boards (90 dias)</h3>
-              </div>
-              <ul className="space-y-1.5">
-                {review.trello.topBoards.map((b, i) => (
-                  <li key={b.board_name} className="flex items-center gap-3 text-sm">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/15 text-[11px] font-semibold text-accent">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-fg">{b.board_name}</span>
-                    <span className="font-mono text-xs text-fg-muted">{b.count}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Comparativo vs média móvel 4w */}
           <FourWeekAverages data={review.vsAvg4Weeks} />
 
@@ -215,7 +191,6 @@ function FourWeekAverages({
 }: {
   data: {
     github: { current: number; avg4w: number; deltaPct: number | null };
-    trello: { current: number; avg4w: number; deltaPct: number | null };
   };
 }) {
   return (
@@ -224,9 +199,8 @@ function FourWeekAverages({
         <Award className="h-4 w-4 text-accent" />
         <h3 className="text-sm font-semibold text-fg">Esta semana vs média 4 semanas</h3>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
         <AvgRow label="GitHub" current={data.github.current} avg={data.github.avg4w} deltaPct={data.github.deltaPct} />
-        <AvgRow label="Trello" current={data.trello.current} avg={data.trello.avg4w} deltaPct={data.trello.deltaPct} />
       </div>
     </div>
   );
@@ -268,11 +242,10 @@ function HeroStat({
   icon: typeof TrendingUp;
   label: string;
   value: string | number;
-  accent: "github" | "trello" | "default";
+  accent: "github" | "default";
 }) {
   const colorMap = {
     github: "text-success bg-success/15",
-    trello: "text-warning bg-warning/15",
     default: "text-accent bg-accent/15",
   };
   return (
@@ -291,13 +264,12 @@ function HeroStat({
 }
 
 function DailyBreakdown({ review }: { review: WeeklyReview }) {
-  const days = review.github.daily.map((d, i) => ({
+  const days = review.github.daily.map((d) => ({
     weekday: d.weekday,
     date: d.date,
     gh: d.count,
-    tr: review.trello.daily[i]?.count ?? 0,
   }));
-  const max = Math.max(1, ...days.map((d) => d.gh + d.tr));
+  const max = Math.max(1, ...days.map((d) => d.gh));
 
   return (
     <div className="card">
@@ -307,15 +279,11 @@ function DailyBreakdown({ review }: { review: WeeklyReview }) {
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-success" /> Commits
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-warning" /> Tarefas
-          </span>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((d) => {
           const ghH = max > 0 ? (d.gh / max) * 100 : 0;
-          const trH = max > 0 ? (d.tr / max) * 100 : 0;
           const isToday = d.date === localIsoDate();
           return (
             <div key={d.date} className={cn("flex flex-col items-center gap-2", isToday && "font-semibold")}>
@@ -327,16 +295,9 @@ function DailyBreakdown({ review }: { review: WeeklyReview }) {
                     title={`${d.gh} commits`}
                   />
                 )}
-                {trH > 0 && (
-                  <div
-                    className="w-full bg-warning/80 transition-all"
-                    style={{ height: `${trH}%` }}
-                    title={`${d.tr} tarefas`}
-                  />
-                )}
               </div>
               <div className="text-[11px] text-fg-muted">{d.weekday}</div>
-              <div className="font-mono text-[11px] text-fg">{d.gh + d.tr}</div>
+              <div className="font-mono text-[11px] text-fg">{d.gh}</div>
             </div>
           );
         })}

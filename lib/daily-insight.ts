@@ -1,9 +1,8 @@
-import { getGithubContributions, getTrelloCompletedByDay } from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 import { listHabitsWithStats } from "@/lib/db/habits-queries";
 import { getPomodoroStats } from "@/lib/db/pomodoro-queries";
 import { getGamificationSummary } from "@/lib/gamification";
 import { getGithubAnalytics } from "@/lib/analytics/github";
-import { getTrelloAnalytics } from "@/lib/analytics/trello";
 import { localIsoDate } from "@/lib/local-date";
 
 export type DailyInsight = {
@@ -20,12 +19,10 @@ function isoDate(d: Date): string {
 }
 
 export async function computeDailyInsight(): Promise<DailyInsight | null> {
-  const [contribs, tasks, gami, ghAnalytics, trAnalytics, habits, pomoStats] = await Promise.all([
+  const [contribs, gami, ghAnalytics, habits, pomoStats] = await Promise.all([
     getGithubContributions(60),
-    getTrelloCompletedByDay(60),
     getGamificationSummary(),
     getGithubAnalytics(),
-    getTrelloAnalytics(),
     listHabitsWithStats(),
     getPomodoroStats(),
   ]);
@@ -79,12 +76,10 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
 
   // Meta de ontem batida
   const yGh = contribs.find((c) => c.date === yIso)?.count ?? 0;
-  const yTr = tasks.find((c) => c.date === yIso)?.count ?? 0;
-  const yesterdayActive = yGh > 0 || yTr > 0;
-  if (yesterdayActive && yGh + yTr >= 5) {
+  if (yGh >= 5) {
     candidates.push({
       title: "Ontem você foi produtivo 👏",
-      description: `${yGh} contribuições + ${yTr} tarefas. Bora repetir.`,
+      description: `${yGh} contribuições. Bora repetir.`,
       emoji: "👏",
       weight: 2,
     });
@@ -99,7 +94,7 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
         emoji: "⚠️",
         weight: 5,
       });
-      break; // só um por vez
+      break;
     }
   }
 
@@ -113,19 +108,6 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
     });
   }
 
-  // Trello pico de hora
-  if (trAnalytics.peakHour && trAnalytics.peakHour.count > 0) {
-    const currentHour = today.getHours();
-    if (currentHour === trAnalytics.peakHour.hour) {
-      candidates.push({
-        title: `Hora pico do Trello: ${trAnalytics.peakHour.label}`,
-        description: "Esse é o horário em que você costuma fechar mais tarefas.",
-        emoji: "⏰",
-        weight: 3,
-      });
-    }
-  }
-
   // Fim de mês: dias até o fim do mês corrente
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const daysToMonthEnd = Math.ceil((endOfMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -133,25 +115,21 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
     const monthly = gami.goals.find((g) => g.period === "monthly");
     if (monthly) {
       const ghPct = Math.round(monthly.github.pct);
-      const trPct = Math.round(monthly.trello.pct);
-      const minPct = Math.min(ghPct, trPct);
       const days = daysToMonthEnd === 0 ? "hoje" : `${daysToMonthEnd} dia${daysToMonthEnd === 1 ? "" : "s"}`;
       let desc: string;
       let weight: number;
       if (monthly.completed) {
         desc = `Mês acaba ${days === "hoje" ? "hoje" : `em ${days}`} — meta mensal já tá batida 🏆`;
         weight = 2;
-      } else if (minPct >= 80) {
-        desc = `Mês acaba em ${days}, você tá em ${minPct}% da meta. Falta pouco!`;
+      } else if (ghPct >= 80) {
+        desc = `Mês acaba em ${days}, você tá em ${ghPct}% da meta. Falta pouco!`;
         weight = 5;
       } else {
-        desc = `Mês acaba em ${days}, você tá em ${minPct}% da meta mensal.`;
+        desc = `Mês acaba em ${days}, você tá em ${ghPct}% da meta mensal.`;
         weight = 4;
       }
       candidates.push({
-        title: monthly.completed
-          ? "Reta final do mês 🎯"
-          : `Fim do mês se aproximando`,
+        title: monthly.completed ? "Reta final do mês 🎯" : `Fim do mês se aproximando`,
         description: desc,
         emoji: monthly.completed ? "🏆" : "📅",
         weight,
@@ -160,7 +138,7 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
   }
 
   // Fim de trimestre: se faltam até 14 dias e estamos no último mês do tri
-  const isQuarterEnd = (today.getMonth() + 1) % 3 === 0; // mar, jun, set, dez
+  const isQuarterEnd = (today.getMonth() + 1) % 3 === 0;
   if (isQuarterEnd && daysToMonthEnd <= 14) {
     const quarter = Math.floor(today.getMonth() / 3) + 1;
     candidates.push({
@@ -173,9 +151,8 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
 
   // Sem nada hoje ainda
   const todayGh = contribs.find((c) => c.date === todayIso)?.count ?? 0;
-  const todayTr = tasks.find((c) => c.date === todayIso)?.count ?? 0;
   const hourNow = today.getHours();
-  if (hourNow >= 14 && todayGh === 0 && todayTr === 0) {
+  if (hourNow >= 14 && todayGh === 0) {
     candidates.push({
       title: "Dia ainda em branco",
       description: "Que tal começar com 1 pomodoro de 25min?",
@@ -194,7 +171,6 @@ export async function computeDailyInsight(): Promise<DailyInsight | null> {
     });
   }
 
-  // Escolhe pelo maior peso (empate -> primeiro)
   candidates.sort((a, b) => b.weight - a.weight);
   return candidates[0];
 }

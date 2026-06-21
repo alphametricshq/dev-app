@@ -1,14 +1,13 @@
 import type { SyncLogEntry } from "@/lib/db/queries";
-import { Github, Trello, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Github, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Github> = {
   github: Github,
-  trello: Trello,
 };
 
 export function SyncStatus({ syncs }: { syncs: SyncLogEntry[] }) {
-  const sources = ["github", "trello"];
+  const sources = ["github"];
   const byName = new Map(syncs.map((s) => [s.source, s]));
 
   return (

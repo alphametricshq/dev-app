@@ -49,13 +49,11 @@ export function FloatingTimer() {
         const r = await fetch("/api/goals/progress");
         const d = await r.json();
         if (cancel || !d?.ok) return;
-        const daily = (d.goals as { period: string; github: { pct: number }; trello: { pct: number }; completed: boolean }[]).find(
+        const daily = (d.goals as { period: string; github: { pct: number }; completed: boolean }[]).find(
           (g) => g.period === "daily",
         );
         if (!daily) return;
-        // Combina GH + Trello: média ponderada simples
-        const combined = Math.min(100, (daily.github.pct + daily.trello.pct) / 2);
-        setGoalProgress({ pct: combined, done: daily.completed });
+        setGoalProgress({ pct: Math.min(100, daily.github.pct), done: daily.completed });
       } catch {
         /* ignora — sem dados, sem barra */
       }

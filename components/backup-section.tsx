@@ -54,7 +54,7 @@ export function BackupSection() {
     const ok = await confirmDialog({
       title: `Restaurar "${name}"?`,
       description:
-        "⚠️ Vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, pinned cards, configs).",
+        "⚠️ Vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, configs).",
       confirmLabel: "Sobrescrever tudo",
       danger: true,
     });
@@ -115,7 +115,7 @@ export function BackupSection() {
     const ok = await confirmDialog({
       title: "Importar backup?",
       description:
-        "⚠️ Importar vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, pinned cards, configs).",
+        "⚠️ Importar vai SOBRESCREVER todos os dados atuais (hábitos, pomodoros, journal, configs).",
       confirmLabel: "Sobrescrever tudo",
       danger: true,
     });
@@ -155,7 +155,7 @@ export function BackupSection() {
         <div>
           <h2 className="text-base font-semibold text-fg">Backup &amp; restauração</h2>
           <p className="text-xs text-fg-muted">
-            Exporta hábitos, pomodoros, journal, pinned cards e configurações em JSON
+            Exporta hábitos, pomodoros, journal e configurações em JSON
           </p>
         </div>
       </header>
@@ -187,7 +187,7 @@ export function BackupSection() {
       </div>
 
       <div className="mt-3 space-y-1 text-[11px] text-fg-subtle">
-        <p>· Credenciais GitHub/Trello <strong className="text-fg-muted">não</strong> são exportadas (segurança).</p>
+        <p>· Credenciais GitHub <strong className="text-fg-muted">não</strong> são exportadas (segurança).</p>
         <p>· Histórico de sync e contribuições GitHub são re-sincronizadas via API após restaurar.</p>
         <p>· Importar sobrescreve todos os dados — faça backup antes se necessário.</p>
       </div>

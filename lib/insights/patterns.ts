@@ -1,9 +1,4 @@
-import {
-  getTrelloCompletedByHour,
-  getTrelloCompletedByWeekday,
-  getTrelloCompletedByDay,
-  getGithubContributions,
-} from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 import { getPomodoroByHour, getPomodoroByWeekday } from "@/lib/db/pomodoro-queries";
 import { db, initDb } from "@/lib/db";
 import { localIsoDate } from "@/lib/local-date";
@@ -62,19 +57,7 @@ async function habitNames(): Promise<Map<number, { name: string; emoji: string }
 }
 
 export async function computePatterns(): Promise<Pattern[]> {
-  const [
-    trelloByHour,
-    trelloByWeekday,
-    trelloByDay,
-    contribsByDay,
-    pomoByHour,
-    pomoByWeekday,
-    habits,
-    logs,
-  ] = await Promise.all([
-    getTrelloCompletedByHour(90),
-    getTrelloCompletedByWeekday(90),
-    getTrelloCompletedByDay(90),
+  const [contribsByDay, pomoByHour, pomoByWeekday, habits, logs] = await Promise.all([
     getGithubContributions(90),
     getPomodoroByHour(90),
     getPomodoroByWeekday(90),
@@ -84,9 +67,8 @@ export async function computePatterns(): Promise<Pattern[]> {
 
   const patterns: Pattern[] = [];
 
-  // ===== Hora pico combinada (tasks + pomodoros) =====
+  // ===== Hora pico (pomodoros) =====
   const hourTotals = new Map<number, number>();
-  for (const h of trelloByHour) hourTotals.set(h.hour, (hourTotals.get(h.hour) ?? 0) + h.count);
   for (const h of pomoByHour) hourTotals.set(h.hour, (hourTotals.get(h.hour) ?? 0) + h.count);
   let peakHour: number | null = null;
   let peakCount = 0;
@@ -102,13 +84,12 @@ export async function computePatterns(): Promise<Pattern[]> {
       emoji: "⏰",
       title: "Sua hora de pico",
       value: bucketHour(peakHour),
-      hint: `Maior concentração de tasks + pomodoros na ${hourLabel(peakHour)}`,
+      hint: `Maior concentração de pomodoros na ${hourLabel(peakHour)}`,
     });
   }
 
-  // ===== Dia da semana mais produtivo (tasks + contribs + pomodoros) =====
+  // ===== Dia da semana mais produtivo (contribs + pomodoros) =====
   const weekdayTotals: number[] = Array(7).fill(0);
-  for (const w of trelloByWeekday) weekdayTotals[w.weekday] += w.count;
   for (const w of pomoByWeekday) weekdayTotals[w.weekday] += w.count;
   for (const cd of contribsByDay) {
     const d = new Date(cd.date + "T00:00:00");
@@ -164,22 +145,20 @@ export async function computePatterns(): Promise<Pattern[]> {
     }
   }
 
-  // ===== Boost: hábito que mais correlaciona com tasks +contribs =====
-  if (habits.size > 0 && trelloByDay.length + contribsByDay.length > 0) {
+  // ===== Boost: hábito que mais correlaciona com contribs =====
+  if (habits.size > 0 && contribsByDay.length > 0) {
     const dayProd = new Map<string, number>();
-    for (const t of trelloByDay) dayProd.set(t.date, (dayProd.get(t.date) ?? 0) + t.count);
     for (const c of contribsByDay) dayProd.set(c.date, (dayProd.get(c.date) ?? 0) + c.count);
 
     type Boost = { id: number; with: number; without: number; lift: number; sample: number };
     const boosts: Boost[] = [];
     for (const [id] of habits) {
       const set = logs.get(id) ?? new Set<string>();
-      if (set.size < 5) continue; // amostra insuficiente
+      if (set.size < 5) continue;
       let withSum = 0,
         withN = 0,
         woSum = 0,
         woN = 0;
-      // Considera apenas dias que aparecem em dayProd (ignora dias sem qualquer atividade)
       for (const [date, prod] of dayProd) {
         if (set.has(date)) {
           withSum += prod;
@@ -208,9 +187,6 @@ export async function computePatterns(): Promise<Pattern[]> {
       });
     }
   }
-
-  // ===== Streak de pomodoro nos últimos 14 dias =====
-  // (omitido por enquanto pra não inflar)
 
   return patterns;
 }
