@@ -9,6 +9,9 @@ import {
   ExternalLink,
   CalendarClock,
   Building2,
+  AlertOctagon,
+  UserX,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
@@ -89,10 +92,34 @@ export function TeamView() {
     return list;
   }, [data]);
 
-  const totalUnassigned = useMemo(() => {
-    if (!data) return 0;
-    return data.items.filter((it) => it.state !== "CLOSED" && it.assignees.length === 0).length;
+  const summary = useMemo(() => {
+    if (!data) {
+      return { total: 0, unassigned: 0, overdue: 0, internal: 0, external: 0 };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let total = 0;
+    let unassigned = 0;
+    let overdue = 0;
+    let internal = 0;
+    let external = 0;
+    for (const it of data.items) {
+      if (it.state === "CLOSED") continue;
+      total++;
+      if (it.assignees.length === 0) unassigned++;
+      if (it.deadline) {
+        const d = new Date(it.deadline + "T00:00:00");
+        if (d.getTime() < today.getTime()) overdue++;
+      }
+      if (it.cliente) {
+        if (isInternalCliente(it.cliente)) internal++;
+        else external++;
+      }
+    }
+    return { total, unassigned, overdue, internal, external };
   }, [data]);
+
+  const totalUnassigned = summary.unassigned;
 
   if (loading) {
     return (
@@ -128,11 +155,6 @@ export function TeamView() {
             {byMember.length} integrante{byMember.length === 1 ? "" : "s"} ativo
             {byMember.length === 1 ? "" : "s"}
           </span>
-          {totalUnassigned > 0 && (
-            <span className="rounded-full bg-bg-subtle px-2 py-0.5">
-              {totalUnassigned} sem assignee
-            </span>
-          )}
         </div>
         <button
           onClick={() => load(true)}
@@ -144,6 +166,35 @@ export function TeamView() {
         </button>
       </div>
 
+      {/* Cards stats agregados */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5">
+        <SummaryCard icon={Layers} label="Total" value={summary.total} tone="default" />
+        <SummaryCard
+          icon={Building2}
+          label="Cliente externo"
+          value={summary.external}
+          tone="accent"
+        />
+        <SummaryCard
+          icon={Building2}
+          label="Interno"
+          value={summary.internal}
+          tone="warning"
+        />
+        <SummaryCard
+          icon={AlertOctagon}
+          label="Vencidos"
+          value={summary.overdue}
+          tone={summary.overdue > 0 ? "danger" : "default"}
+        />
+        <SummaryCard
+          icon={UserX}
+          label="Sem assignee"
+          value={totalUnassigned}
+          tone={totalUnassigned > 0 ? "warning" : "default"}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {byMember.map(({ login, items }) => (
           <MemberCard
@@ -153,6 +204,34 @@ export function TeamView() {
             isMe={data.myLogin?.toLowerCase() === login.toLowerCase()}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: number;
+  tone: "default" | "accent" | "warning" | "danger";
+}) {
+  const toneClass = {
+    default: "text-fg-muted bg-bg-subtle",
+    accent: "text-accent bg-accent/10",
+    warning: "text-warning bg-warning/10",
+    danger: "text-danger bg-danger/10",
+  }[tone];
+  return (
+    <div className={cn("flex items-center gap-2 rounded-lg border border-border px-3 py-2", toneClass)}>
+      <Icon className="h-4 w-4 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wider opacity-70">{label}</div>
+        <div className="text-lg font-semibold leading-tight">{value}</div>
       </div>
     </div>
   );
