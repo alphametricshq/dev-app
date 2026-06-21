@@ -1,6 +1,6 @@
 {
   "name": "dashboard-pessoal",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "main": "electron/main.js",
   "description": "Dashboard pessoal de produtividade com integração GitHub",
