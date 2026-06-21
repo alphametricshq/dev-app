@@ -17,17 +17,37 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
-  User,
   CalendarClock,
   FileText,
   Plus,
   X,
+  LayoutGrid,
+  CalendarRange,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
 
-const ONLY_MINE_KEY = "project-board-only-mine";
+const ACTIVE_TAB_KEY = "project-board-active-tab";
+
+type TabId = string; // "all" | "this-week" | "user:<login>"
+
+type Tab = {
+  id: TabId;
+  label: string;
+  icon: typeof LayoutGrid;
+  matches: (item: ProjectItem) => boolean;
+};
+
+function withinDays(iso: string | null, days: number): boolean {
+  if (!iso) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + "T00:00:00");
+  const diffDays = Math.round((d.getTime() - today.getTime()) / 86400000);
+  return diffDays <= days; // inclui vencidos (diff < 0)
+}
 
 const PRIORITY_STYLE: Record<string, string> = {
   "🔴 P0 — urgente": "bg-danger/15 text-danger border-danger/30",
@@ -48,7 +68,7 @@ export function ProjectBoard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState(false);
-  const [onlyMine, setOnlyMine] = useState(true);
+  const [activeTabId, setActiveTabId] = useState<TabId>("user:me");
   const [activeItem, setActiveItem] = useState<ProjectItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showNewDemand, setShowNewDemand] = useState(false);
@@ -57,15 +77,14 @@ export function ProjectBoard() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // Refs pro auto-refresh não capturar estado velho nem atrapalhar um drag
   const draggingRef = useRef(false);
   const loadRef = useRef<(silent?: boolean) => void>(() => {});
   const modalOpenRef = useRef(false);
   modalOpenRef.current = showNewDemand;
 
   useEffect(() => {
-    const stored = localStorage.getItem(ONLY_MINE_KEY);
-    if (stored === "0") setOnlyMine(false);
+    const stored = localStorage.getItem(ACTIVE_TAB_KEY);
+    if (stored) setActiveTabId(stored);
     load();
   }, []);
 
@@ -110,29 +129,68 @@ export function ProjectBoard() {
     }
   }
 
-  function toggleOnlyMine() {
-    const next = !onlyMine;
-    setOnlyMine(next);
-    localStorage.setItem(ONLY_MINE_KEY, next ? "1" : "0");
+  function selectTab(id: TabId) {
+    setActiveTabId(id);
+    localStorage.setItem(ACTIVE_TAB_KEY, id);
   }
 
-  // Itens após "Só minhas" — base dos chips de stats (que mostram sempre o
-  // panorama completo) e dos filtros de chip aplicados em cima
-  const baseItems = useMemo(() => {
+  // Lista de tabs: fixas (Todas, Esta semana, Minhas) + uma por integrante
+  // que aparece nos items (excluindo myLogin que já é "Minhas")
+  const tabs: Tab[] = useMemo(() => {
     if (!data) return [];
-    let items = data.items.filter((it) => it.state !== "CLOSED");
-    if (onlyMine && data.myLogin) {
-      const me = data.myLogin.toLowerCase();
-      // Drafts sem assignee entram no "Só minhas": os criados pelo app nascem
-      // assim e sumiriam do board logo após criar.
-      items = items.filter(
-        (it) =>
+    const me = data.myLogin?.toLowerCase();
+    const result: Tab[] = [
+      {
+        id: "all",
+        label: "Todas",
+        icon: LayoutGrid,
+        matches: () => true,
+      },
+      {
+        id: "this-week",
+        label: "Esta semana",
+        icon: CalendarRange,
+        matches: (it) => withinDays(it.deadline, 7),
+      },
+    ];
+    if (data.myLogin) {
+      result.push({
+        id: "user:me",
+        label: `Minhas`,
+        icon: Users,
+        matches: (it) =>
           it.assignees.some((a) => a.toLowerCase() === me) ||
           (it.isDraft && it.assignees.length === 0),
-      );
+      });
     }
-    return items;
-  }, [data, onlyMine]);
+    // Coleta logins únicos que aparecem nos items, exceto myLogin
+    const otherLogins = new Set<string>();
+    for (const it of data.items) {
+      for (const a of it.assignees) {
+        const lower = a.toLowerCase();
+        if (lower !== me) otherLogins.add(a);
+      }
+    }
+    for (const login of Array.from(otherLogins).sort((a, b) => a.localeCompare(b))) {
+      result.push({
+        id: `user:${login}`,
+        label: login,
+        icon: Users,
+        matches: (it) => it.assignees.some((a) => a.toLowerCase() === login.toLowerCase()),
+      });
+    }
+    return result;
+  }, [data]);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
+
+  // Itens após a tab ativa — base dos chips de stats e dos filtros de chip aplicados em cima
+  const baseItems = useMemo(() => {
+    if (!data) return [];
+    const open = data.items.filter((it) => it.state !== "CLOSED");
+    if (!activeTab) return open;
+    return open.filter((it) => activeTab.matches(it));
+  }, [data, activeTab]);
 
   const visibleItems = useMemo(() => {
     let items = baseItems;
@@ -258,26 +316,33 @@ export function ProjectBoard() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
+      {/* Tabs de visualização (estilo views do GitHub Project) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleOnlyMine}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
-              onlyMine
-                ? "border-accent bg-accent/15 text-accent"
-                : "border-border text-fg-muted hover:bg-bg-hover hover:text-fg",
-            )}
-          >
-            <User className="h-3 w-3" />
-            Só minhas
-          </button>
-          <span className="text-[11px] text-fg-subtle">
-            {visibleItems.length} item{visibleItems.length === 1 ? "" : "s"}
-            {onlyMine && data.myLogin ? ` atribuídos a ${data.myLogin}` : ""}
-          </span>
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-bg-subtle/60 p-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = tab.id === activeTab?.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => selectTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1 text-xs transition-colors",
+                  active
+                    ? "bg-bg-card text-fg shadow-sm ring-1 ring-border"
+                    : "text-fg-muted hover:bg-bg-hover hover:text-fg",
+                )}
+              >
+                <Icon className="h-3 w-3" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-[11px] text-fg-subtle">
+            {visibleItems.length} item{visibleItems.length === 1 ? "" : "s"}
+          </span>
           <a
             href={`https://github.com/orgs/${data.org}/projects/${data.projectNumber}`}
             target="_blank"
