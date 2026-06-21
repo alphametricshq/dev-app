@@ -22,6 +22,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ["n"], label: "Nova nota (Journal)", category: "Ações" },
   { keys: ["p"], label: "Iniciar pomodoro de 25min", category: "Ações" },
   { keys: ["s"], label: "Sincronizar agora", category: "Ações" },
+  { keys: ["r"], label: "Atualizar Demandas/Equipe", category: "Ações" },
   // Geral
   { keys: ["Ctrl", "K"], label: "Command palette", category: "Geral" },
   { keys: ["?"], label: "Mostrar atalhos", category: "Geral" },

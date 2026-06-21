@@ -129,6 +129,22 @@ export function ProjectBoard() {
     });
   }
 
+  // Atalho R: refresh manual (sem modificadores, fora de input)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (target && target.isContentEditable) return;
+      if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        loadRef.current(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Persiste filtros de chip em localStorage (limpa quando volta pra null)
   useEffect(() => {
     if (clienteFilter) localStorage.setItem(CLIENTE_FILTER_KEY, clienteFilter);
