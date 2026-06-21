@@ -26,6 +26,7 @@ import {
   Users,
   Maximize2,
   Minimize2,
+  AlertOctagon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -52,6 +53,14 @@ function withinDays(iso: string | null, days: number): boolean {
   const d = new Date(iso + "T00:00:00");
   const diffDays = Math.round((d.getTime() - today.getTime()) / 86400000);
   return diffDays <= days; // inclui vencidos (diff < 0)
+}
+
+function isOverdue(iso: string | null): boolean {
+  if (!iso) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + "T00:00:00");
+  return d.getTime() < today.getTime();
 }
 
 // Identifica clientes "internos" (Alphametrics, Interno) pra distinguir
@@ -194,6 +203,12 @@ export function ProjectBoard() {
         label: "Esta semana",
         icon: CalendarRange,
         matches: (it) => withinDays(it.deadline, 7),
+      },
+      {
+        id: "overdue",
+        label: "Vencidos",
+        icon: AlertOctagon,
+        matches: (it) => isOverdue(it.deadline),
       },
     ];
     if (data.myLogin) {
