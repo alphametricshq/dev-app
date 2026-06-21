@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { LastUpdated } from "@/components/last-updated";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
 
 const ACTIVE_TAB_KEY = "project-board-active-tab";
@@ -98,6 +99,7 @@ export function ProjectBoard() {
   const [activeTabId, setActiveTabId] = useState<TabId>("user:me");
   const [activeItem, setActiveItem] = useState<ProjectItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<number | null>(null);
   const [showNewDemand, setShowNewDemand] = useState(false);
   const [clienteFilter, setClienteFilter] = useState<string | null>(null);
   const [prioridadeFilter, setPrioridadeFilter] = useState<string | null>(null);
@@ -187,6 +189,7 @@ export function ProjectBoard() {
       setData(d);
       setError(null);
       setAuthError(false);
+      setLastLoadedAt(Date.now());
     } catch (e) {
       // Refresh silencioso que falha não derruba o board (nem um modal aberto)
       // pra tela de erro — mantém os dados antigos e tenta de novo no próximo tick.
@@ -426,6 +429,7 @@ export function ProjectBoard() {
           <span className="text-[11px] text-fg-subtle">
             {visibleItems.length} item{visibleItems.length === 1 ? "" : "s"}
           </span>
+          <LastUpdated at={lastLoadedAt} />
           <a
             href={`https://github.com/orgs/${data.org}/projects/${data.projectNumber}`}
             target="_blank"
