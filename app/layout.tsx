@@ -20,7 +20,7 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme-id');var 
 
 export const metadata: Metadata = {
   title: "Dashboard Pessoal",
-  description: "Dashboard de produtividade pessoal — GitHub & Trello",
+  description: "Dashboard de produtividade pessoal — GitHub",
   other: {
     "google": "notranslate",
   },

@@ -1,4 +1,4 @@
-import { GitCommit, CheckSquare, TrendingUp, Calendar, CheckCircle2 } from "lucide-react";
+import { GitCommit, TrendingUp, Calendar, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GoalProgress } from "@/lib/gamification/goals";
 import { computeForecast, STATUS_LABELS, type GoalStatus } from "@/lib/forecast";
@@ -45,21 +45,6 @@ export function GoalForecastCard({ goal }: { goal: GoalProgress }) {
           rate={forecast.rate.github}
           daysToComplete={forecast.daysToComplete.github}
           perDayNeeded={forecast.perDayNeeded.github}
-          daysRemaining={forecast.daysRemaining}
-          totalDays={forecast.daysTotal}
-        />
-        <ForecastRow
-          icon={CheckSquare}
-          label="Trello"
-          colorClass="bg-warning"
-          current={goal.trello.current}
-          target={goal.trello.target}
-          pct={goal.trello.pct}
-          expected={forecast.expectedNow.trello}
-          status={forecast.status.trello}
-          rate={forecast.rate.trello}
-          daysToComplete={forecast.daysToComplete.trello}
-          perDayNeeded={forecast.perDayNeeded.trello}
           daysRemaining={forecast.daysRemaining}
           totalDays={forecast.daysTotal}
         />

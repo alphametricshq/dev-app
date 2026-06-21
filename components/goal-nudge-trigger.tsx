@@ -41,18 +41,6 @@ async function check() {
     const today = localIsoDate();
     const shown = loadShown();
 
-    // Trello: falta exatamente 1 task (e o dia já começou — current > 0)
-    const trRemaining = daily.trello.target - daily.trello.current;
-    if (daily.trello.current > 0 && trRemaining === 1 && !shown[`${today}:trello`]) {
-      toast.info("Tá quase! 🔥", "Falta 1 task pra bater a meta de hoje no Trello.", 8000);
-      showDesktopNotification({
-        title: "Falta 1 task! 🔥",
-        body: "Fecha mais uma no Trello e a meta de hoje tá batida.",
-        tag: "goal-nudge-trello",
-      });
-      markShown(`${today}:trello`);
-    }
-
     // GitHub: reta final — faltam <= 10% da meta (mín. 3) e já tem progresso
     const ghRemaining = daily.github.target - daily.github.current;
     const ghThreshold = Math.max(3, Math.round(daily.github.target * 0.1));

@@ -1,6 +1,6 @@
-import { getGithubContributions, getTrelloCompletedByDay, getTrelloByBoard } from "@/lib/db/queries";
+import { getGithubContributions } from "@/lib/db/queries";
 import { listHabitsWithStats } from "@/lib/db/habits-queries";
-import { XP_PER_GITHUB_CONTRIB, XP_PER_TRELLO_TASK, XP_PER_ACTIVE_DAY } from "@/lib/gamification/level";
+import { XP_PER_GITHUB_CONTRIB, XP_PER_ACTIVE_DAY } from "@/lib/gamification/level";
 import { localIsoDate } from "@/lib/local-date";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -63,12 +63,6 @@ export type WeeklyReview = {
     bestDay: DailyEntry | null;
   };
 
-  trello: Comparison & {
-    daily: DailyEntry[];
-    bestDay: DailyEntry | null;
-    topBoards: { board_name: string; count: number }[];
-  };
-
   habits: {
     summary: {
       id: number;
@@ -88,11 +82,11 @@ export type WeeklyReview = {
     breakdown: { source: string; value: number }[];
   };
 
-  newBadges: string[]; // titles of badges unlocked this week (heuristic via thresholds)
+  newBadges: string[];
 
   highlights: {
     activeDays: number;
-    totalActions: number; // commits + tasks
+    totalActions: number;
     bestWeekday: string | null;
   };
 
@@ -101,7 +95,6 @@ export type WeeklyReview = {
   // Comparativo da semana atual vs média móvel das 4 semanas anteriores.
   vsAvg4Weeks: {
     github: { current: number; avg4w: number; deltaPct: number | null };
-    trello: { current: number; avg4w: number; deltaPct: number | null };
   };
 };
 
@@ -124,39 +117,22 @@ function totalIn(daily: DailyEntry[]): number {
   return daily.reduce((s, d) => s + d.count, 0);
 }
 
-function topBoardsForRange(
-  start: Date,
-  end: Date,
-): Promise<{ board_name: string; count: number }[]> {
-  // Aproximacao: pega top boards dos ultimos 90 dias e filtra heuristicamente nao da pra fazer aqui
-  // sem nova query. Vamos usar getTrelloByBoard global (ultimos 90 dias) como referencia.
-  // Na pratica, a lista geral indica os boards mais ativos.
-  // Deixar simples: retorna os top do periodo de 90 dias inteiros.
-  void start;
-  void end;
-  return getTrelloByBoard(90);
-}
-
 export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
   const { start, end } = getWeekRange(weeksAgo);
   const prev = getWeekRange(weeksAgo + 1);
 
-  const [contribs, byDay, byBoard, habits] = await Promise.all([
+  const [contribs, habits] = await Promise.all([
     getGithubContributions(365),
-    getTrelloCompletedByDay(365),
-    topBoardsForRange(start, end),
     listHabitsWithStats(),
   ]);
 
   const ghMap = new Map(contribs.map((c) => [c.date, c.count]));
-  const trMap = new Map(byDay.map((c) => [c.date, c.count]));
 
   const ghDaily = buildDaily(start, end, ghMap);
   const ghPrevDaily = buildDaily(prev.start, prev.end, ghMap);
   const ghTotal = totalIn(ghDaily);
   const ghPrev = totalIn(ghPrevDaily);
 
-  // Média das 4 semanas ANTERIORES à selecionada (offset +1 a +4)
   function avgOf4Weeks(map: Map<string, number>): number {
     let sum = 0;
     for (let i = 1; i <= 4; i++) {
@@ -166,18 +142,8 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
     return sum / 4;
   }
   const ghAvg4w = avgOf4Weeks(ghMap);
-  const trAvg4w = avgOf4Weeks(trMap);
-
-  const trDaily = buildDaily(start, end, trMap);
-  const trPrevDaily = buildDaily(prev.start, prev.end, trMap);
-  const trTotal = totalIn(trDaily);
-  const trPrev = totalIn(trPrevDaily);
 
   const ghBest = ghDaily.reduce<DailyEntry | null>(
-    (best, d) => (d.count > 0 && (!best || d.count > best.count) ? d : best),
-    null,
-  );
-  const trBest = trDaily.reduce<DailyEntry | null>(
     (best, d) => (d.count > 0 && (!best || d.count > best.count) ? d : best),
     null,
   );
@@ -202,7 +168,6 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
   });
   const totalCompletions = habitsSummary.reduce((s, h) => s + h.completed, 0);
 
-  // Perfect days: dias em que TODOS os habitos foram feitos (se houver habits)
   let perfectDays = 0;
   if (habits.length > 0) {
     for (const day of ghDaily) {
@@ -211,36 +176,18 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
     }
   }
 
-  // Total active days na semana: dias com qq atividade
   const activeDays = ghDaily.filter(
-    (d, i) => d.count > 0 || trDaily[i].count > 0 || habitsSummary.some((_, hi) => {
-      const habit = habits[hi];
-      if (!habit) return false;
-      return new Set(habit.last30DaysLogs).has(d.date);
-    }),
+    (d) =>
+      d.count > 0 ||
+      habits.some((habit) => new Set(habit.last30DaysLogs).has(d.date)),
   ).length;
 
-  // XP estimado da semana
   const xpGh = ghTotal * XP_PER_GITHUB_CONTRIB;
-  const xpTr = trTotal * XP_PER_TRELLO_TASK;
   const xpDays = activeDays * XP_PER_ACTIVE_DAY;
-  const xpEarned = xpGh + xpTr + xpDays;
-
-  // Best weekday
-  const bestDailyEntry: DailyEntry | null = (() => {
-    let best: DailyEntry | null = null;
-    for (let i = 0; i < ghDaily.length; i++) {
-      const total = ghDaily[i].count + (trDaily[i]?.count ?? 0);
-      if (total > 0 && (!best || total > (ghDaily[ghDaily.indexOf(best)].count + (trDaily[ghDaily.indexOf(best)]?.count ?? 0)))) {
-        best = ghDaily[i];
-      }
-    }
-    return best;
-  })();
+  const xpEarned = xpGh + xpDays;
 
   // Heuristica de "novas badges": thresholds que cruzaram esta semana
   const newBadges: string[] = [];
-  // GitHub thresholds
   const ghTotalThisWeek = contribs
     .filter((c) => c.date <= isoDate(end))
     .reduce((s, d) => s + d.count, 0);
@@ -253,28 +200,12 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
   ]) {
     if (ghTotalPrevWeek < t.val && ghTotalThisWeek >= t.val) newBadges.push(t.title);
   }
-  // Trello thresholds
-  const trTotalAll = byDay
-    .filter((c) => c.date <= isoDate(end))
-    .reduce((s, d) => s + d.count, 0);
-  const trTotalPrev = trTotalAll - trTotal;
-  for (const t of [
-    { val: 1, title: "✅ Primeira tarefa" },
-    { val: 25, title: "📦 Vinte e cinco" },
-    { val: 100, title: "🎯 Cem tarefas" },
-  ]) {
-    if (trTotalPrev < t.val && trTotalAll >= t.val) newBadges.push(t.title);
-  }
 
-  // Insights
   const insights: string[] = [];
   if (ghTotal > 0 && ghPrev > 0) {
     const p = pct(ghTotal, ghPrev);
     if (p != null && p > 15) insights.push(`Você fez ${Math.round(p)}% mais commits que a semana passada 🚀`);
     else if (p != null && p < -15) insights.push(`Volume de commits caiu ${Math.abs(Math.round(p))}% vs semana anterior.`);
-  }
-  if (trTotal > 0) {
-    insights.push(`${trTotal} tarefa${trTotal === 1 ? "" : "s"} concluída${trTotal === 1 ? "" : "s"} no Trello.`);
   }
   if (perfectDays > 0) {
     insights.push(`${perfectDays} dia${perfectDays === 1 ? "" : "s"} perfeito${perfectDays === 1 ? "" : "s"} (todos os hábitos cumpridos).`);
@@ -300,15 +231,6 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
       daily: ghDaily,
       bestDay: ghBest,
     },
-    trello: {
-      current: trTotal,
-      previous: trPrev,
-      delta: trTotal - trPrev,
-      deltaPct: pct(trTotal, trPrev),
-      daily: trDaily,
-      bestDay: trBest,
-      topBoards: byBoard.slice(0, 3),
-    },
     habits: {
       summary: habitsSummary,
       totalCompletions,
@@ -318,20 +240,18 @@ export async function getWeeklyReview(weeksAgo = 0): Promise<WeeklyReview> {
       earned: xpEarned,
       breakdown: [
         { source: "GitHub", value: xpGh },
-        { source: "Trello", value: xpTr },
         { source: "Dias ativos", value: xpDays },
       ],
     },
     newBadges,
     highlights: {
       activeDays,
-      totalActions: ghTotal + trTotal,
-      bestWeekday: bestDailyEntry?.weekday ?? null,
+      totalActions: ghTotal,
+      bestWeekday: ghBest?.weekday ?? null,
     },
     insights,
     vsAvg4Weeks: {
       github: { current: ghTotal, avg4w: ghAvg4w, deltaPct: pct(ghTotal, ghAvg4w) },
-      trello: { current: trTotal, avg4w: trAvg4w, deltaPct: pct(trTotal, trAvg4w) },
     },
   };
 }

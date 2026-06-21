@@ -1,4 +1,4 @@
-import { CheckCircle2, GitCommit, CheckSquare } from "lucide-react";
+import { CheckCircle2, GitCommit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GoalProgress } from "@/lib/gamification/goals";
 
@@ -42,14 +42,6 @@ function GoalCard({ goal }: { goal: GoalProgress }) {
           target={goal.github.target}
           pct={goal.github.pct}
           colorClass="bg-success"
-        />
-        <GoalRow
-          icon={CheckSquare}
-          label="Tarefas Trello"
-          current={goal.trello.current}
-          target={goal.trello.target}
-          pct={goal.trello.pct}
-          colorClass="bg-warning"
         />
       </div>
     </div>

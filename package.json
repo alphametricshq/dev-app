@@ -3,7 +3,7 @@
   "version": "0.7.0",
   "private": true,
   "main": "electron/main.js",
-  "description": "Dashboard pessoal de produtividade com integrações GitHub e Trello",
+  "description": "Dashboard pessoal de produtividade com integração GitHub",
   "author": "Ay0rus",
   "scripts": {
     "dev": "next dev",

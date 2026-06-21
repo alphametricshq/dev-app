@@ -4,7 +4,7 @@ import {
   fetchProjectMeta,
   moveProjectItem,
 } from "@/lib/integrations/github-project";
-import { getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
+import { getProjectConfig } from "@/lib/integrations/github-project-config";
 import { ProjectAuthError } from "@/lib/integrations/github-token";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Meta leve (sem os itens) pro formulário de criação — usado pelo quick-task.
 export async function GET() {
   try {
-    const cfg = await getProjectSyncConfig();
+    const cfg = await getProjectConfig();
     const meta = await fetchProjectMeta(cfg.org, cfg.projectNumber);
     return NextResponse.json({ ok: true, meta });
   } catch (e) {

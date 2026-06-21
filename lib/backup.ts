@@ -64,7 +64,6 @@ const TABLES = [
   "pomodoro_sessions",
   "habits",
   "habit_logs",
-  "pinned_cards",
   "journal_entries",
   "settings",
 ] as const;
@@ -80,8 +79,7 @@ const TABLE_COLUMNS: Record<TableName, readonly string[]> = {
   pomodoro_sessions: ["id", "type", "duration_min", "started_at", "finished_at", "card_id", "card_name", "completed"],
   habits: ["id", "name", "emoji", "color", "target_per_week", "archived", "position", "created_at"],
   habit_logs: ["habit_id", "date", "logged_at"],
-  pinned_cards: ["card_id", "board_id", "card_name", "list_name", "url", "pinned_at"],
-  journal_entries: ["id", "content", "tags", "mood", "created_at", "updated_at"],
+  journal_entries: ["id", "content", "tags", "mood", "energy", "created_at", "updated_at"],
   settings: ["key", "value", "updated_at"],
 };
 
@@ -141,7 +139,6 @@ export async function importData(backup: unknown): Promise<{ counts: Record<stri
   const order: TableName[] = [
     "settings",
     "pomodoro_sessions",
-    "pinned_cards",
     "journal_entries",
     "habits",
     "habit_logs",

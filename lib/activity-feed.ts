@@ -1,6 +1,6 @@
 import { db, initDb } from "@/lib/db";
 
-export type ActivityType = "pomodoro" | "habit" | "journal" | "trello";
+export type ActivityType = "pomodoro" | "habit" | "journal";
 
 export type ActivityEvent = {
   id: string;
@@ -76,24 +76,6 @@ export async function getRecentActivity(days = 7, limit = 40): Promise<ActivityE
       title: "Nova nota",
       description: preview,
       emoji: (r.mood as string) || "📝",
-    });
-  }
-
-  const trello = await c.execute({
-    sql: `SELECT id, card_name, board_name, completed_at
-          FROM trello_tasks_completed
-          WHERE completed_at >= datetime('now', ?)
-          ORDER BY completed_at DESC LIMIT ?`,
-    args: [`-${days} days`, limit],
-  });
-  for (const r of trello.rows) {
-    events.push({
-      id: `trello-${r.id}`,
-      type: "trello",
-      timestamp: r.completed_at as string,
-      title: r.card_name as string,
-      description: r.board_name ? String(r.board_name) : undefined,
-      emoji: "✅",
     });
   }
 

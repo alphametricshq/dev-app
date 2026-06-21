@@ -7,20 +7,18 @@ import {
   Search,
   LayoutDashboard,
   Brain,
-  KanbanSquare,
   Repeat,
   CalendarDays,
   Trophy,
   Github,
-  Trello,
   Settings,
   RefreshCw,
   Play,
   Coffee,
   Plus,
-  ExternalLink,
   CornerDownLeft,
   BookOpen,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,7 +28,7 @@ import { toast } from "@/lib/toast";
 
 type Command = {
   id: string;
-  category: "Páginas" | "Ações" | "Cards" | "Pomodoro";
+  category: "Páginas" | "Ações" | "Pomodoro";
   title: string;
   subtitle?: string;
   icon: LucideIcon | string; // emoji string ou ícone
@@ -38,22 +36,15 @@ type Command = {
   action: () => void | Promise<void>;
 };
 
-type SearchResult = {
-  id: string;
-  name: string;
-  url: string;
-};
-
 const NAV_COMMANDS_TPL = (router: ReturnType<typeof useRouter>): Command[] => [
   { id: "go-home", category: "Páginas", title: "Visão geral", icon: LayoutDashboard, action: () => router.push("/") },
   { id: "go-foco", category: "Páginas", title: "Foco (Pomodoro)", icon: Brain, action: () => router.push("/foco") },
-  { id: "go-board", category: "Páginas", title: "Board", icon: KanbanSquare, action: () => router.push("/board") },
+  { id: "go-demandas", category: "Páginas", title: "Demandas", icon: FolderKanban, action: () => router.push("/demandas") },
   { id: "go-habitos", category: "Páginas", title: "Hábitos", icon: Repeat, action: () => router.push("/habitos") },
   { id: "go-journal", category: "Páginas", title: "Journal", icon: BookOpen, keywords: ["nota", "anotacao"], action: () => router.push("/journal") },
   { id: "go-retro", category: "Páginas", title: "Retrospectiva", icon: CalendarDays, action: () => router.push("/retrospectiva") },
   { id: "go-conquistas", category: "Páginas", title: "Conquistas", icon: Trophy, action: () => router.push("/conquistas") },
   { id: "go-github", category: "Páginas", title: "GitHub", icon: Github, action: () => router.push("/github") },
-  { id: "go-trello", category: "Páginas", title: "Trello", icon: Trello, action: () => router.push("/trello") },
   { id: "go-settings", category: "Páginas", title: "Configurações", icon: Settings, action: () => router.push("/settings") },
 ];
 
@@ -99,8 +90,6 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -134,36 +123,6 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  // Search Trello (debounced)
-  useEffect(() => {
-    if (!open) return;
-    if (query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    setSearching(true);
-    const handle = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/trello/search?q=${encodeURIComponent(query.trim())}`);
-        const data = await res.json();
-        if (data?.ok && Array.isArray(data.cards)) {
-          setSearchResults(
-            data.cards.map((c: { id: string; name: string; url: string }) => ({
-              id: c.id,
-              name: c.name,
-              url: c.url,
-            })),
-          );
-        }
-      } catch {
-        // ignore
-      } finally {
-        setSearching(false);
-      }
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [query, open]);
-
   const navCommands = useMemo(() => NAV_COMMANDS_TPL(router), [router]);
   const pomoCommands = useMemo(() => POMO_COMMANDS_TPL(router), [router]);
 
@@ -173,7 +132,7 @@ export function CommandPalette() {
         id: "sync-now",
         category: "Ações",
         title: "Sincronizar agora",
-        subtitle: "Atualiza GitHub + Trello",
+        subtitle: "Atualiza dados do GitHub",
         icon: RefreshCw,
         keywords: ["sync"],
         action: async () => {
@@ -199,31 +158,16 @@ export function CommandPalette() {
     [router],
   );
 
-  const cardCommands: Command[] = useMemo(
-    () =>
-      searchResults.map((c) => ({
-        id: `card-${c.id}`,
-        category: "Cards" as const,
-        title: c.name,
-        subtitle: "Abrir no Trello",
-        icon: ExternalLink,
-        action: () => {
-          window.open(c.url, "_blank", "noopener,noreferrer");
-        },
-      })),
-    [searchResults],
-  );
-
   // Filter all by query
   const allCommands = useMemo(() => {
-    const list = [...navCommands, ...pomoCommands, ...actionCommands, ...cardCommands];
+    const list = [...navCommands, ...pomoCommands, ...actionCommands];
     if (!query.trim()) return list;
     const lower = query.toLowerCase();
     return list.filter((c) => {
       const text = [c.title, c.subtitle ?? "", ...(c.keywords ?? [])].join(" ").toLowerCase();
       return text.includes(lower);
     });
-  }, [query, navCommands, pomoCommands, actionCommands, cardCommands]);
+  }, [query, navCommands, pomoCommands, actionCommands]);
 
   // Keep activeIndex in bounds
   useEffect(() => {
@@ -279,10 +223,9 @@ export function CommandPalette() {
               setActiveIndex(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder="Digite um comando ou busque um card..."
+            placeholder="Digite um comando..."
             className="flex-1 bg-transparent text-sm text-fg placeholder:text-fg-subtle focus:outline-none"
           />
-          {searching && <span className="text-[11px] text-fg-subtle">buscando...</span>}
           <kbd className="rounded bg-bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
             Esc
           </kbd>

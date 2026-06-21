@@ -18,7 +18,7 @@ export function weeklyReviewToMarkdown(r: WeeklyReview): string {
   lines.push("");
 
   lines.push("## Resumo");
-  lines.push(`- **${r.highlights.totalActions}** ações no total (commits + tarefas)`);
+  lines.push(`- **${r.highlights.totalActions}** commits no total`);
   lines.push(`- **${r.highlights.activeDays}** dias ativos`);
   if (r.highlights.bestWeekday) lines.push(`- Melhor dia: **${r.highlights.bestWeekday}**`);
   lines.push(`- XP ganho: **${r.xp.earned}**`);
@@ -30,18 +30,6 @@ export function weeklyReviewToMarkdown(r: WeeklyReview): string {
   );
   if (r.github.bestDay && r.github.bestDay.count > 0) {
     lines.push(`- Pico: ${r.github.bestDay.weekday} com ${r.github.bestDay.count}`);
-  }
-  lines.push("");
-
-  lines.push("## Trello");
-  lines.push(`- ${r.trello.current} tarefas concluídas (${arrow(r.trello.delta)} vs semana anterior)`);
-  if (r.trello.topBoards.length > 0) {
-    lines.push(
-      `- Boards mais ativos: ${r.trello.topBoards
-        .slice(0, 3)
-        .map((b) => `${b.board_name} (${b.count})`)
-        .join(", ")}`,
-    );
   }
   lines.push("");
 

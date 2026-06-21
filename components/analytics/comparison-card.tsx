@@ -11,7 +11,7 @@ export function ComparisonCard({
   label: string;
   comparison: Comparison;
   unit?: string;
-  accent?: "default" | "github" | "trello";
+  accent?: "default" | "github";
 }) {
   const { current, previous, deltaPct } = comparison;
   const trend = deltaPct == null ? "neutral" : deltaPct > 0.5 ? "up" : deltaPct < -0.5 ? "down" : "neutral";
@@ -19,7 +19,6 @@ export function ComparisonCard({
   const accentBg = {
     default: "bg-accent/10",
     github: "bg-success/10",
-    trello: "bg-warning/10",
   }[accent];
 
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;

@@ -1,7 +1,4 @@
 import { syncGithub } from "@/lib/integrations/github";
-import { syncTrello } from "@/lib/integrations/trello";
-import { syncIssuesToTrello, getIssuesSyncConfig } from "@/lib/integrations/issues-to-trello";
-import { syncProjectToTrello, getProjectSyncConfig } from "@/lib/integrations/project-to-trello";
 import { maybeRunAutoBackup } from "@/lib/backup";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
@@ -12,7 +9,7 @@ const g = globalThis as GlobalWithFlag;
 
 const DEFAULT_INTERVAL_MIN = 10;
 
-async function runSync(source: "github" | "trello" | "issues" | "project", fn: () => Promise<{ itemsSynced: number }>) {
+async function runSync(source: "github", fn: () => Promise<{ itemsSynced: number }>) {
   const id = await logSyncStart(source);
   try {
     const r = await fn();
@@ -25,29 +22,7 @@ async function runSync(source: "github" | "trello" | "issues" | "project", fn: (
 
 async function tick() {
   const ghReady = !!getCredential("GITHUB_TOKEN") && !!getCredential("GITHUB_USERNAME");
-  const trReady = !!getCredential("TRELLO_API_KEY") && !!getCredential("TRELLO_TOKEN");
   if (ghReady) await runSync("github", () => syncGithub().then((r) => ({ itemsSynced: r.itemsSynced })));
-  if (trReady) await runSync("trello", () => syncTrello(90).then((r) => ({ itemsSynced: r.itemsSynced })));
-  // Issues → Trello (só se token GH + credenciais Trello + integração ligada)
-  if (ghReady && trReady) {
-    try {
-      const cfg = await getIssuesSyncConfig();
-      if (cfg.enabled) {
-        await runSync("issues", () => syncIssuesToTrello().then((r) => ({ itemsSynced: r.created })));
-      }
-    } catch {
-      // ignora — não quebra o ciclo de sync
-    }
-    // GitHub Project → Trello (só se ligado)
-    try {
-      const pcfg = await getProjectSyncConfig();
-      if (pcfg.enabled) {
-        await runSync("project", () => syncProjectToTrello().then((r) => ({ itemsSynced: r.created })));
-      }
-    } catch {
-      // ignora
-    }
-  }
 
   // Backup automático (snapshot JSON; throttle interno de 24h por setting)
   try {

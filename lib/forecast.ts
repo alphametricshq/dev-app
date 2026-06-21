@@ -7,11 +7,11 @@ export type GoalForecast = {
   daysElapsed: number;
   daysTotal: number;
   daysRemaining: number;
-  expectedNow: { github: number; trello: number };
-  status: { github: GoalStatus; trello: GoalStatus };
-  rate: { github: number; trello: number }; // por dia até agora
-  daysToComplete: { github: number | null; trello: number | null }; // null = inalcançável no ritmo atual
-  perDayNeeded: { github: number; trello: number }; // pra bater no prazo
+  expectedNow: { github: number };
+  status: { github: GoalStatus };
+  rate: { github: number };
+  daysToComplete: { github: number | null };
+  perDayNeeded: { github: number };
 };
 
 function daysInMonth(year: number, month: number): number {
@@ -37,9 +37,8 @@ export function computeForecast(goal: GoalProgress, today: Date = new Date()): G
     daysElapsed = 1;
     daysTotal = 1;
   } else if (goal.period === "weekly") {
-    // Segunda = dia 0
     const dayOfWeek = (t.getDay() + 6) % 7;
-    daysElapsed = dayOfWeek + 1; // hoje incluso
+    daysElapsed = dayOfWeek + 1;
     daysTotal = 7;
   } else if (goal.period === "monthly") {
     daysElapsed = t.getDate();
@@ -61,18 +60,17 @@ export function computeForecast(goal: GoalProgress, today: Date = new Date()): G
   }
 
   const gh = calc(goal.github.current, goal.github.target);
-  const tr = calc(goal.trello.current, goal.trello.target);
 
   return {
     period: goal.period,
     daysElapsed,
     daysTotal,
     daysRemaining,
-    expectedNow: { github: gh.expected, trello: tr.expected },
-    status: { github: gh.status, trello: tr.status },
-    rate: { github: gh.rate, trello: tr.rate },
-    daysToComplete: { github: gh.daysToComplete, trello: tr.daysToComplete },
-    perDayNeeded: { github: gh.perDayNeeded, trello: tr.perDayNeeded },
+    expectedNow: { github: gh.expected },
+    status: { github: gh.status },
+    rate: { github: gh.rate },
+    daysToComplete: { github: gh.daysToComplete },
+    perDayNeeded: { github: gh.perDayNeeded },
   };
 }
 

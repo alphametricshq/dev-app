@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Github, Trello, Timer, ExternalLink, Save, Loader2, Eye, EyeOff } from "lucide-react";
+import { Github, Timer, ExternalLink, Save, Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
@@ -11,18 +11,14 @@ type CredsView = Record<string, CredView>;
 type FormState = {
   GITHUB_USERNAME: string;
   GITHUB_TOKEN: string;
-  TRELLO_API_KEY: string;
-  TRELLO_TOKEN: string;
-  TRELLO_DONE_LIST_IDS: string;
+  GITHUB_PROJECT_TOKEN: string;
   SYNC_INTERVAL_MIN: string;
 };
 
 const EMPTY_FORM: FormState = {
   GITHUB_USERNAME: "",
   GITHUB_TOKEN: "",
-  TRELLO_API_KEY: "",
-  TRELLO_TOKEN: "",
-  TRELLO_DONE_LIST_IDS: "",
+  GITHUB_PROJECT_TOKEN: "",
   SYNC_INTERVAL_MIN: "",
 };
 
@@ -77,7 +73,6 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
   }
 
   const ghOk = view.GITHUB_USERNAME?.set && view.GITHUB_TOKEN?.set;
-  const trOk = view.TRELLO_API_KEY?.set && view.TRELLO_TOKEN?.set;
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -89,7 +84,9 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
           </div>
           <div className="flex-1">
             <h2 className="text-base font-semibold text-fg">GitHub</h2>
-            <p className="text-xs text-fg-muted">Sincroniza o gráfico de contribuições</p>
+            <p className="text-xs text-fg-muted">
+              Contribuições + acesso ao Project da org (/demandas)
+            </p>
           </div>
           <StatusPill ok={!!ghOk} loading={loading} />
         </header>
@@ -115,67 +112,25 @@ export function SettingsForm({ initialIntervalMin }: { initialIntervalMin: numbe
             secret
             showSecrets={showSecrets}
           />
+          <Field
+            label="Project Token (opcional, separado)"
+            name="GITHUB_PROJECT_TOKEN"
+            placeholder={view.GITHUB_PROJECT_TOKEN?.preview ?? "ghp_..."}
+            value={form.GITHUB_PROJECT_TOKEN}
+            onChange={(v) => setField("GITHUB_PROJECT_TOKEN", v)}
+            currentSet={view.GITHUB_PROJECT_TOKEN?.set}
+            source={view.GITHUB_PROJECT_TOKEN?.source}
+            secret
+            showSecrets={showSecrets}
+            hint="Use só se quiser um token dedicado pro Project (com escopo project). Senão, o GITHUB_TOKEN já serve."
+          />
         </div>
 
         <div className="mt-3 text-[11px] text-fg-subtle">
           Gere um token classic em{" "}
           <Ext href="https://github.com/settings/tokens">github.com/settings/tokens</Ext> com escopo{" "}
-          <code className="codepill">read:user</code> (e <code className="codepill">repo</code> pra
-          repos privados).
-        </div>
-      </section>
-
-      {/* Trello */}
-      <section className="card">
-        <header className="mb-4 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15 text-warning">
-            <Trello className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-base font-semibold text-fg">Trello</h2>
-            <p className="text-xs text-fg-muted">Sincroniza tarefas + permite gerenciar boards</p>
-          </div>
-          <StatusPill ok={!!trOk} loading={loading} />
-        </header>
-
-        <div className="space-y-3">
-          <Field
-            label="API Key"
-            name="TRELLO_API_KEY"
-            placeholder={view.TRELLO_API_KEY?.preview ?? ""}
-            value={form.TRELLO_API_KEY}
-            onChange={(v) => setField("TRELLO_API_KEY", v)}
-            currentSet={view.TRELLO_API_KEY?.set}
-            source={view.TRELLO_API_KEY?.source}
-            secret
-            showSecrets={showSecrets}
-          />
-          <Field
-            label="Token"
-            name="TRELLO_TOKEN"
-            placeholder={view.TRELLO_TOKEN?.preview ?? "ATTA..."}
-            value={form.TRELLO_TOKEN}
-            onChange={(v) => setField("TRELLO_TOKEN", v)}
-            currentSet={view.TRELLO_TOKEN?.set}
-            source={view.TRELLO_TOKEN?.source}
-            secret
-            showSecrets={showSecrets}
-          />
-          <Field
-            label="Done List IDs (opcional)"
-            name="TRELLO_DONE_LIST_IDS"
-            placeholder={view.TRELLO_DONE_LIST_IDS?.preview ?? "(detecção automática)"}
-            value={form.TRELLO_DONE_LIST_IDS}
-            onChange={(v) => setField("TRELLO_DONE_LIST_IDS", v)}
-            currentSet={view.TRELLO_DONE_LIST_IDS?.set}
-            source={view.TRELLO_DONE_LIST_IDS?.source}
-            hint="IDs de listas que representam Done, separadas por vírgula"
-          />
-        </div>
-
-        <div className="mt-3 text-[11px] text-fg-subtle">
-          1. <Ext href="https://trello.com/power-ups/admin/">trello.com/power-ups/admin</Ext> → cria
-          Power-Up → aba <strong>API Key</strong>. 2. Clica no link <strong>Token</strong> → autoriza.
+          <code className="codepill">read:user</code>, <code className="codepill">repo</code> (pra
+          repos privados) e <code className="codepill">project</code> (pra ler o board em /demandas).
         </div>
       </section>
 

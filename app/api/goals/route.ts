@@ -27,18 +27,9 @@ function sanitize(input: unknown): GoalsConfig | null {
     return fallback;
   }
   return {
-    daily: {
-      github: getNum("daily", "github", DEFAULT_GOALS.daily.github),
-      trello: getNum("daily", "trello", DEFAULT_GOALS.daily.trello),
-    },
-    weekly: {
-      github: getNum("weekly", "github", DEFAULT_GOALS.weekly.github),
-      trello: getNum("weekly", "trello", DEFAULT_GOALS.weekly.trello),
-    },
-    monthly: {
-      github: getNum("monthly", "github", DEFAULT_GOALS.monthly.github),
-      trello: getNum("monthly", "trello", DEFAULT_GOALS.monthly.trello),
-    },
+    daily: { github: getNum("daily", "github", DEFAULT_GOALS.daily.github) },
+    weekly: { github: getNum("weekly", "github", DEFAULT_GOALS.weekly.github) },
+    monthly: { github: getNum("monthly", "github", DEFAULT_GOALS.monthly.github) },
   };
 }
 

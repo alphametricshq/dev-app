@@ -14,7 +14,6 @@ app.commandLine.appendSwitch("disable-features", "Translate");
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let quickCaptureWindow: BrowserWindow | null = null;
-let quickTaskWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 let serverProcess: ChildProcess | null = null;
@@ -246,66 +245,6 @@ function setupQuickCaptureIpc() {
   });
 }
 
-function createQuickTaskWindow() {
-  if (quickTaskWindow && !quickTaskWindow.isDestroyed()) {
-    quickTaskWindow.show();
-    quickTaskWindow.focus();
-    return;
-  }
-  const primary = screen.getPrimaryDisplay();
-  const { width: screenW, height: screenH } = primary.workAreaSize;
-  const winW = 520;
-  const winH = 280;
-  const x = Math.round((screenW - winW) / 2);
-  const y = Math.round((screenH - winH) / 3);
-
-  quickTaskWindow = new BrowserWindow({
-    width: winW,
-    height: winH,
-    x,
-    y,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    movable: true,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    show: false,
-    backgroundColor: "#00000000",
-    hasShadow: true,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      preload: path.join(__dirname, "preload.js"),
-      additionalArguments: ["--quick-task"],
-    },
-  });
-
-  quickTaskWindow.on("closed", () => {
-    quickTaskWindow = null;
-  });
-
-  quickTaskWindow.webContents.on("before-input-event", (_e, input) => {
-    if (input.key === "Escape" && quickTaskWindow) {
-      quickTaskWindow.close();
-    }
-  });
-
-  quickTaskWindow.loadURL(`${currentBaseUrl()}/quick-task`).then(() => {
-    quickTaskWindow?.show();
-    quickTaskWindow?.focus();
-  });
-}
-
-function setupQuickTaskIpc() {
-  ipcMain.on("quick-task-open", () => {
-    createQuickTaskWindow();
-  });
-  ipcMain.on("quick-task-close", () => {
-    if (quickTaskWindow && !quickTaskWindow.isDestroyed()) quickTaskWindow.close();
-  });
-}
-
 function createTray() {
   if (tray) return;
   const iconPath = path.join(__dirname, "..", "dashboard.ico");
@@ -319,10 +258,6 @@ function createTray() {
       click: () => showMainWindow(),
     },
     { type: "separator" },
-    {
-      label: "Nova task (Ctrl+Shift+T)",
-      click: () => createQuickTaskWindow(),
-    },
     {
       label: "Nova nota (Ctrl+Shift+J)",
       click: () => createQuickCaptureWindow(),
@@ -354,13 +289,11 @@ function setupTrayIpc() {
 
 type ShortcutsConfig = {
   globalQuickCapture: string;
-  globalQuickTask: string;
   globalPomodoroToggle: string;
 };
 
 const DEFAULT_SHORTCUTS: ShortcutsConfig = {
   globalQuickCapture: "CommandOrControl+Shift+J",
-  globalQuickTask: "CommandOrControl+Shift+T",
   globalPomodoroToggle: "CommandOrControl+Shift+Space",
 };
 
@@ -373,14 +306,6 @@ function registerGlobalShortcuts(cfg: ShortcutsConfig) {
     if (!okJournal) console.warn(`[shortcuts] falha em registrar ${cfg.globalQuickCapture}`);
   } catch (e) {
     console.warn(`[shortcuts] erro ${cfg.globalQuickCapture}:`, e);
-  }
-  try {
-    const okTask = globalShortcut.register(cfg.globalQuickTask, () => {
-      createQuickTaskWindow();
-    });
-    if (!okTask) console.warn(`[shortcuts] falha em registrar ${cfg.globalQuickTask}`);
-  } catch (e) {
-    console.warn(`[shortcuts] erro ${cfg.globalQuickTask}:`, e);
   }
   try {
     const okPomo = globalShortcut.register(cfg.globalPomodoroToggle, () => {
@@ -400,7 +325,6 @@ function setupGlobalShortcuts() {
   ipcMain.on("update-shortcuts", (_e, cfg: ShortcutsConfig) => {
     registerGlobalShortcuts({
       globalQuickCapture: cfg?.globalQuickCapture || DEFAULT_SHORTCUTS.globalQuickCapture,
-      globalQuickTask: cfg?.globalQuickTask || DEFAULT_SHORTCUTS.globalQuickTask,
       globalPomodoroToggle: cfg?.globalPomodoroToggle || DEFAULT_SHORTCUTS.globalPomodoroToggle,
     });
   });
@@ -535,7 +459,6 @@ app.whenReady().then(async () => {
     setupAutoUpdater();
     setupPomodoroOverlayIpc();
     setupQuickCaptureIpc();
-    setupQuickTaskIpc();
     setupGlobalShortcuts();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
@@ -563,7 +486,6 @@ app.on("before-quit", () => {
   isQuitting = true;
   if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
   if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.destroy();
-  if (quickTaskWindow && !quickTaskWindow.isDestroyed()) quickTaskWindow.destroy();
   if (tray) {
     tray.destroy();
     tray = null;
