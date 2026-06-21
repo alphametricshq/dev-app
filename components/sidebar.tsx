@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Github, Settings, Sparkles, Trophy, Repeat, CalendarDays, Brain, BookOpen, FolderKanban } from "lucide-react";
+import { LayoutDashboard, Github, Settings, Sparkles, Trophy, Repeat, CalendarDays, Brain, BookOpen, FolderKanban, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import pkg from "@/package.json";
 
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Visão geral", icon: LayoutDashboard },
   { href: "/foco", label: "Foco", icon: Brain },
   { href: "/demandas", label: "Demandas", icon: FolderKanban },
+  { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/habitos", label: "Hábitos", icon: Repeat },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/retrospectiva", label: "Retrospectiva", icon: CalendarDays },
