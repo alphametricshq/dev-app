@@ -8,6 +8,7 @@ import { DesktopNotificationsToggle } from "@/components/desktop-notifications-t
 import { StreakWarningSettings } from "@/components/streak-warning-settings";
 import { ShortcutsEditor } from "@/components/shortcuts-editor";
 import { TemplatesManager } from "@/components/templates-manager";
+import { UpdateChecker } from "@/components/update-checker";
 import { getAutoSyncIntervalMinutes } from "@/lib/auto-sync";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ const SECTIONS = [
   { id: "metas", label: "Metas & templates" },
   { id: "credenciais", label: "Credenciais & sync" },
   { id: "dados", label: "Dados" },
+  { id: "app", label: "Aplicativo" },
 ];
 
 export default function SettingsPage() {
@@ -62,6 +64,10 @@ export default function SettingsPage() {
 
         <SettingsSection id="dados" title="Dados">
           <BackupSection />
+        </SettingsSection>
+
+        <SettingsSection id="app" title="Aplicativo">
+          <UpdateChecker />
         </SettingsSection>
       </div>
     </>

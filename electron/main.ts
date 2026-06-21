@@ -369,8 +369,11 @@ function setupAutoUpdater() {
     });
   });
 
-  autoUpdater.on("update-not-available", () => {
+  autoUpdater.on("update-not-available", (info) => {
     console.log("[update] no update");
+    mainWindow?.webContents.send("update-not-available", {
+      version: typeof info?.version === "string" ? info.version : null,
+    });
   });
 
   autoUpdater.on("update-downloaded", (info) => {
