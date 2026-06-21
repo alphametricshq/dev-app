@@ -380,6 +380,7 @@ export function ProjectBoard() {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = tab.id === activeTab?.id;
+            const count = data ? data.items.filter((it) => it.state !== "CLOSED" && tab.matches(it)).length : 0;
             return (
               <button
                 key={tab.id}
@@ -393,6 +394,14 @@ export function ProjectBoard() {
               >
                 <Icon className="h-3 w-3" />
                 {tab.label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0 text-[10px] font-mono",
+                    active ? "bg-bg-subtle text-fg-muted" : "bg-bg-hover/60 text-fg-subtle",
+                  )}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
