@@ -51,6 +51,22 @@ export function TeamView() {
     load();
   }, []);
 
+  // Atalho R: refresh manual
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (target && target.isContentEditable) return;
+      if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        load(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   async function load(silent = false) {
     if (silent) setRefreshing(true);
     else {
