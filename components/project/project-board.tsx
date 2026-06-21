@@ -49,6 +49,19 @@ function withinDays(iso: string | null, days: number): boolean {
   return diffDays <= days; // inclui vencidos (diff < 0)
 }
 
+// Identifica clientes "internos" (Alphametrics, Interno) pra distinguir
+// visualmente das demandas de cliente externo.
+function isInternalCliente(cliente: string | null): boolean {
+  if (!cliente) return false;
+  const lower = cliente.toLowerCase().trim();
+  return (
+    lower.includes("interno") ||
+    lower.includes("alphametrics") ||
+    lower.includes("alpha metrics") ||
+    lower === "internal"
+  );
+}
+
 const PRIORITY_STYLE: Record<string, string> = {
   "🔴 P0 — urgente": "bg-danger/15 text-danger border-danger/30",
   "🟡 P1 — esta semana": "bg-warning/15 text-warning border-warning/30",
@@ -696,12 +709,18 @@ function DraggableItem({ item }: { item: ProjectItem }) {
 function ItemCard({ item, overlay = false }: { item: ProjectItem; overlay?: boolean }) {
   const prioStyle = item.prioridade ? PRIORITY_STYLE[item.prioridade] : null;
   const deadline = item.deadline ? parseDeadline(item.deadline) : null;
+  const internal = isInternalCliente(item.cliente);
 
   return (
     <div
       className={cn(
-        "cursor-grab touch-none rounded-lg border border-border bg-bg-card p-2.5 text-sm shadow-sm transition-colors",
+        "relative cursor-grab touch-none rounded-lg border border-border bg-bg-card p-2.5 pl-3 text-sm shadow-sm transition-colors",
         !overlay && "hover:border-border-strong hover:bg-bg-hover",
+        internal
+          ? "border-l-2 border-l-warning"
+          : item.cliente
+            ? "border-l-2 border-l-accent"
+            : "",
       )}
     >
       <div className="flex items-start gap-2">
@@ -709,7 +728,16 @@ function ItemCard({ item, overlay = false }: { item: ProjectItem; overlay?: bool
           {(item.cliente || prioStyle) && (
             <div className="mb-1.5 flex flex-wrap items-center gap-1">
               {item.cliente && (
-                <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                <span
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                    internal
+                      ? "bg-warning/15 text-warning"
+                      : "bg-accent/10 text-accent",
+                  )}
+                  title={internal ? "Interno" : "Cliente externo"}
+                >
+                  {internal && <span className="mr-0.5">🏢</span>}
                   {item.cliente}
                 </span>
               )}
