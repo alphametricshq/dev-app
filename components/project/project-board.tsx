@@ -30,6 +30,8 @@ import { toast } from "@/lib/toast";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
 
 const ACTIVE_TAB_KEY = "project-board-active-tab";
+const CLIENTE_FILTER_KEY = "project-board-cliente-filter";
+const PRIORIDADE_FILTER_KEY = "project-board-prioridade-filter";
 
 type TabId = string; // "all" | "this-week" | "user:<login>"
 
@@ -98,8 +100,23 @@ export function ProjectBoard() {
   useEffect(() => {
     const stored = localStorage.getItem(ACTIVE_TAB_KEY);
     if (stored) setActiveTabId(stored);
+    const cli = localStorage.getItem(CLIENTE_FILTER_KEY);
+    if (cli) setClienteFilter(cli);
+    const prio = localStorage.getItem(PRIORIDADE_FILTER_KEY);
+    if (prio) setPrioridadeFilter(prio);
     load();
   }, []);
+
+  // Persiste filtros de chip em localStorage (limpa quando volta pra null)
+  useEffect(() => {
+    if (clienteFilter) localStorage.setItem(CLIENTE_FILTER_KEY, clienteFilter);
+    else localStorage.removeItem(CLIENTE_FILTER_KEY);
+  }, [clienteFilter]);
+
+  useEffect(() => {
+    if (prioridadeFilter) localStorage.setItem(PRIORIDADE_FILTER_KEY, prioridadeFilter);
+    else localStorage.removeItem(PRIORIDADE_FILTER_KEY);
+  }, [prioridadeFilter]);
 
   // Auto-refresh a cada 60s: o board é compartilhado com a equipe, então
   // mudanças de status feitas por outros aparecem sem precisar de F5.
