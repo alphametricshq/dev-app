@@ -19,6 +19,7 @@ import {
   CornerDownLeft,
   BookOpen,
   FolderKanban,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const NAV_COMMANDS_TPL = (router: ReturnType<typeof useRouter>): Command[] => [
   { id: "go-home", category: "Páginas", title: "Visão geral", icon: LayoutDashboard, action: () => router.push("/") },
   { id: "go-foco", category: "Páginas", title: "Foco (Pomodoro)", icon: Brain, action: () => router.push("/foco") },
   { id: "go-demandas", category: "Páginas", title: "Demandas", icon: FolderKanban, action: () => router.push("/demandas") },
+  { id: "go-equipe", category: "Páginas", title: "Equipe", icon: Users, keywords: ["time", "team"], action: () => router.push("/equipe") },
   { id: "go-habitos", category: "Páginas", title: "Hábitos", icon: Repeat, action: () => router.push("/habitos") },
   { id: "go-journal", category: "Páginas", title: "Journal", icon: BookOpen, keywords: ["nota", "anotacao"], action: () => router.push("/journal") },
   { id: "go-retro", category: "Páginas", title: "Retrospectiva", icon: CalendarDays, action: () => router.push("/retrospectiva") },
