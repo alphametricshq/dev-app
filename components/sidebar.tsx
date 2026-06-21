@@ -3,7 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Github, Settings, Sparkles, Trophy, Repeat, CalendarDays, Brain, BookOpen, FolderKanban, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Github,
+  Settings,
+  Sparkles,
+  Trophy,
+  Repeat,
+  CalendarDays,
+  Brain,
+  BookOpen,
+  FolderKanban,
+  Users,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import pkg from "@/package.json";
 
@@ -26,9 +40,26 @@ type SyncIndicator = {
   lastStatus: "success" | "error" | null;
 };
 
+const COLLAPSED_KEY = "sidebar-collapsed";
+
 export function Sidebar() {
   const pathname = usePathname();
   const [sync, setSync] = useState<SyncIndicator | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
+      return next;
+    });
+  }
 
   useEffect(() => {
     let cancel = false;
@@ -66,19 +97,34 @@ export function Sidebar() {
     ? `Último sync: ${new Date(sync.lastSync).toLocaleString("pt-BR")}`
     : undefined;
 
+  // Pre-mount: SSR renderiza expandida pra não dar flicker
+  const isCollapsed = mounted && collapsed;
+
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border bg-bg-subtle">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20 text-accent">
+    <aside
+      className={cn(
+        "flex h-screen flex-col border-r border-border bg-bg-subtle transition-[width] duration-150",
+        isCollapsed ? "w-16" : "w-64",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center py-5",
+          isCollapsed ? "justify-center px-2" : "gap-2 px-5",
+        )}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
           <Sparkles className="h-5 w-5" />
         </div>
-        <div>
-          <div className="text-sm font-semibold text-fg">Dopamine</div>
-          <div className="text-xs text-fg-muted">dashboard pessoal</div>
-        </div>
+        {!isCollapsed && (
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-fg">Dopamine</div>
+            <div className="text-xs text-fg-muted">dashboard pessoal</div>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 px-3 py-2">
+      <nav className={cn("flex-1 py-2", isCollapsed ? "px-2" : "px-3")}>
         <ul className="space-y-0.5">
           {NAV.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -87,15 +133,17 @@ export function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  title={isCollapsed ? item.label : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "flex items-center rounded-lg py-2 text-sm transition-colors",
+                    isCollapsed ? "justify-center px-2" : "gap-3 px-3",
                     active
                       ? "bg-accent/15 text-fg"
-                      : "text-fg-muted hover:bg-bg-hover hover:text-fg"
+                      : "text-fg-muted hover:bg-bg-hover hover:text-fg",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               </li>
             );
@@ -103,31 +151,75 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-2" title={syncTitle}>
-          <span className="relative flex h-2 w-2">
-            {!syncOff && (
+      <div className={cn("border-t border-border", isCollapsed ? "p-2" : "p-4")}>
+        {/* Toggle collapse */}
+        <button
+          onClick={toggleCollapsed}
+          className={cn(
+            "flex w-full items-center rounded-lg py-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg",
+            isCollapsed ? "justify-center px-1.5" : "gap-2 px-2",
+          )}
+          title={isCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-[11px]">Recolher</span>
+            </>
+          )}
+        </button>
+
+        {!isCollapsed && (
+          <>
+            <div className="mt-2 flex items-center gap-2" title={syncTitle}>
+              <span className="relative flex h-2 w-2">
+                {!syncOff && (
+                  <span
+                    className={cn(
+                      "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
+                      syncError ? "bg-danger" : "bg-success",
+                    )}
+                  />
+                )}
+                <span
+                  className={cn(
+                    "relative inline-flex h-2 w-2 rounded-full",
+                    syncOff ? "bg-fg-subtle" : syncError ? "bg-danger" : "bg-success",
+                  )}
+                />
+              </span>
+              <span className="text-[11px] text-fg-muted">{syncLabel}</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2 text-[10px] text-fg-subtle">
+              <kbd className="rounded border border-border bg-bg-card px-1 font-mono">?</kbd>
+              <span>atalhos</span>
+              <span className="ml-auto opacity-60">v{pkg.version}</span>
+            </div>
+          </>
+        )}
+
+        {isCollapsed && (
+          <div className="mt-2 flex justify-center" title={syncTitle}>
+            <span className="relative flex h-2 w-2">
+              {!syncOff && (
+                <span
+                  className={cn(
+                    "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
+                    syncError ? "bg-danger" : "bg-success",
+                  )}
+                />
+              )}
               <span
                 className={cn(
-                  "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
-                  syncError ? "bg-danger" : "bg-success",
+                  "relative inline-flex h-2 w-2 rounded-full",
+                  syncOff ? "bg-fg-subtle" : syncError ? "bg-danger" : "bg-success",
                 )}
               />
-            )}
-            <span
-              className={cn(
-                "relative inline-flex h-2 w-2 rounded-full",
-                syncOff ? "bg-fg-subtle" : syncError ? "bg-danger" : "bg-success",
-              )}
-            />
-          </span>
-          <span className="text-[11px] text-fg-muted">{syncLabel}</span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-fg-subtle">
-          <kbd className="rounded border border-border bg-bg-card px-1 font-mono">?</kbd>
-          <span>atalhos</span>
-          <span className="ml-auto opacity-60">v{pkg.version}</span>
-        </div>
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );
