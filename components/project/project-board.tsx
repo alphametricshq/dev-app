@@ -24,6 +24,8 @@ import {
   LayoutGrid,
   CalendarRange,
   Users,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -32,6 +34,7 @@ import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project
 const ACTIVE_TAB_KEY = "project-board-active-tab";
 const CLIENTE_FILTER_KEY = "project-board-cliente-filter";
 const PRIORIDADE_FILTER_KEY = "project-board-prioridade-filter";
+const COMPACT_MODE_KEY = "project-board-compact";
 
 type TabId = string; // "all" | "this-week" | "user:<login>"
 
@@ -89,6 +92,7 @@ export function ProjectBoard() {
   const [showNewDemand, setShowNewDemand] = useState(false);
   const [clienteFilter, setClienteFilter] = useState<string | null>(null);
   const [prioridadeFilter, setPrioridadeFilter] = useState<string | null>(null);
+  const [compact, setCompact] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -104,8 +108,17 @@ export function ProjectBoard() {
     if (cli) setClienteFilter(cli);
     const prio = localStorage.getItem(PRIORIDADE_FILTER_KEY);
     if (prio) setPrioridadeFilter(prio);
+    if (localStorage.getItem(COMPACT_MODE_KEY) === "1") setCompact(true);
     load();
   }, []);
+
+  function toggleCompact() {
+    setCompact((c) => {
+      const next = !c;
+      localStorage.setItem(COMPACT_MODE_KEY, next ? "1" : "0");
+      return next;
+    });
+  }
 
   // Persiste filtros de chip em localStorage (limpa quando volta pra null)
   useEffect(() => {
@@ -383,6 +396,13 @@ export function ProjectBoard() {
             Abrir no GitHub
           </a>
           <button
+            onClick={toggleCompact}
+            className="btn-secondary py-1 text-xs"
+            title={compact ? "Modo confortavel" : "Modo compacto"}
+          >
+            {compact ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
+          </button>
+          <button
             onClick={() => load(true)}
             disabled={refreshing}
             className="btn-secondary py-1 text-xs"
@@ -462,13 +482,13 @@ export function ProjectBoard() {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2">
           {data.meta.statusOptions.map((opt) => (
-            <StatusColumn key={opt.id} name={opt.name} items={itemsOf(opt.name)} />
+            <StatusColumn key={opt.id} name={opt.name} items={itemsOf(opt.name)} compact={compact} />
           ))}
         </div>
         <DragOverlay>
           {activeItem ? (
             <div className="rotate-2 cursor-grabbing">
-              <ItemCard item={activeItem} overlay />
+              <ItemCard item={activeItem} overlay compact={compact} />
             </div>
           ) : null}
         </DragOverlay>
@@ -682,13 +702,22 @@ function NewDemandModal({
   );
 }
 
-function StatusColumn({ name, items }: { name: string; items: ProjectItem[] }) {
+function StatusColumn({
+  name,
+  items,
+  compact = false,
+}: {
+  name: string;
+  items: ProjectItem[];
+  compact?: boolean;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: name });
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-80 shrink-0 flex-col rounded-xl border border-border bg-bg-subtle/60 transition-colors",
+        "flex shrink-0 flex-col rounded-xl border border-border bg-bg-subtle/60 transition-colors",
+        compact ? "w-64" : "w-80",
         isOver && "ring-2 ring-accent/60",
       )}
     >
@@ -698,9 +727,14 @@ function StatusColumn({ name, items }: { name: string; items: ProjectItem[] }) {
           {items.length}
         </span>
       </div>
-      <div className="flex min-h-[60px] flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div
+        className={cn(
+          "flex min-h-[60px] flex-1 flex-col overflow-y-auto",
+          compact ? "gap-1 p-2" : "gap-2 p-3",
+        )}
+      >
         {items.map((it) => (
-          <DraggableItem key={it.itemId} item={it} />
+          <DraggableItem key={it.itemId} item={it} compact={compact} />
         ))}
         {items.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/60 py-4 text-center text-[11px] text-fg-subtle">
@@ -712,18 +746,26 @@ function StatusColumn({ name, items }: { name: string; items: ProjectItem[] }) {
   );
 }
 
-function DraggableItem({ item }: { item: ProjectItem }) {
+function DraggableItem({ item, compact = false }: { item: ProjectItem; compact?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.itemId,
   });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} className={cn(isDragging && "opacity-40")}>
-      <ItemCard item={item} />
+      <ItemCard item={item} compact={compact} />
     </div>
   );
 }
 
-function ItemCard({ item, overlay = false }: { item: ProjectItem; overlay?: boolean }) {
+function ItemCard({
+  item,
+  overlay = false,
+  compact = false,
+}: {
+  item: ProjectItem;
+  overlay?: boolean;
+  compact?: boolean;
+}) {
   const prioStyle = item.prioridade ? PRIORITY_STYLE[item.prioridade] : null;
   const deadline = item.deadline ? parseDeadline(item.deadline) : null;
   const internal = isInternalCliente(item.cliente);
@@ -731,7 +773,8 @@ function ItemCard({ item, overlay = false }: { item: ProjectItem; overlay?: bool
   return (
     <div
       className={cn(
-        "relative cursor-grab touch-none rounded-lg border border-border bg-bg-card p-2.5 pl-3 text-sm shadow-sm transition-colors",
+        "relative cursor-grab touch-none rounded-lg border border-border bg-bg-card shadow-sm transition-colors",
+        compact ? "p-1.5 pl-2 text-xs" : "p-2.5 pl-3 text-sm",
         !overlay && "hover:border-border-strong hover:bg-bg-hover",
         internal
           ? "border-l-2 border-l-warning"
@@ -743,7 +786,7 @@ function ItemCard({ item, overlay = false }: { item: ProjectItem; overlay?: bool
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           {(item.cliente || prioStyle) && (
-            <div className="mb-1.5 flex flex-wrap items-center gap-1">
+            <div className={cn("flex flex-wrap items-center gap-1", compact ? "mb-1" : "mb-1.5")}>
               {item.cliente && (
                 <span
                   className={cn(
