@@ -30,6 +30,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("update-error", listener);
     return () => ipcRenderer.removeListener("update-error", listener);
   },
+  onUpdateNotAvailable(callback: (info: { version: string | null }) => void) {
+    const listener = (_e: unknown, info: { version: string | null }) => callback(info);
+    ipcRenderer.on("update-not-available", listener);
+    return () => ipcRenderer.removeListener("update-not-available", listener);
+  },
   installUpdate() {
     ipcRenderer.send("install-update");
   },
