@@ -12,6 +12,7 @@ import { PomodoroElectronBridge } from "@/components/pomodoro/electron-bridge";
 import { ShortcutsElectronBridge } from "@/components/shortcuts-electron-bridge";
 import { StreakWarningTrigger } from "@/components/streak-warning-trigger";
 import { GoalNudgeTrigger } from "@/components/goal-nudge-trigger";
+import { OnboardingWizard } from "@/components/onboarding-wizard";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <ShortcutsElectronBridge />
       <StreakWarningTrigger />
       <GoalNudgeTrigger />
+      <OnboardingWizard />
     </div>
   );
 }
