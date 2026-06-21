@@ -27,10 +27,13 @@ import {
   Maximize2,
   Minimize2,
   AlertOctagon,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { LastUpdated } from "@/components/last-updated";
+import { useFavorites } from "@/lib/use-favorites";
+import { toggleFavorite } from "@/lib/favorites";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
 
 const ACTIVE_TAB_KEY = "project-board-active-tab";
@@ -100,6 +103,7 @@ export function ProjectBoard() {
   const [activeItem, setActiveItem] = useState<ProjectItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<number | null>(null);
+  const favorites = useFavorites();
   const [showNewDemand, setShowNewDemand] = useState(false);
   const [clienteFilter, setClienteFilter] = useState<string | null>(null);
   const [prioridadeFilter, setPrioridadeFilter] = useState<string | null>(null);
@@ -229,6 +233,12 @@ export function ProjectBoard() {
         icon: AlertOctagon,
         matches: (it) => isOverdue(it.deadline),
       },
+      {
+        id: "favorites",
+        label: "Favoritos",
+        icon: Star,
+        matches: (it) => favorites.has(it.itemId),
+      },
     ];
     if (data.myLogin) {
       result.push({
@@ -257,7 +267,7 @@ export function ProjectBoard() {
       });
     }
     return result;
-  }, [data]);
+  }, [data, favorites]);
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
 
@@ -526,13 +536,24 @@ export function ProjectBoard() {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2">
           {data.meta.statusOptions.map((opt) => (
-            <StatusColumn key={opt.id} name={opt.name} items={itemsOf(opt.name)} compact={compact} />
+            <StatusColumn
+              key={opt.id}
+              name={opt.name}
+              items={itemsOf(opt.name)}
+              compact={compact}
+              favorites={favorites}
+            />
           ))}
         </div>
         <DragOverlay>
           {activeItem ? (
             <div className="rotate-2 cursor-grabbing">
-              <ItemCard item={activeItem} overlay compact={compact} />
+              <ItemCard
+                item={activeItem}
+                overlay
+                compact={compact}
+                favorited={favorites.has(activeItem.itemId)}
+              />
             </div>
           ) : null}
         </DragOverlay>
@@ -750,10 +771,12 @@ function StatusColumn({
   name,
   items,
   compact = false,
+  favorites,
 }: {
   name: string;
   items: ProjectItem[];
   compact?: boolean;
+  favorites: Set<string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: name });
   return (
@@ -778,7 +801,12 @@ function StatusColumn({
         )}
       >
         {items.map((it) => (
-          <DraggableItem key={it.itemId} item={it} compact={compact} />
+          <DraggableItem
+            key={it.itemId}
+            item={it}
+            compact={compact}
+            favorited={favorites.has(it.itemId)}
+          />
         ))}
         {items.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/60 py-4 text-center text-[11px] text-fg-subtle">
@@ -790,13 +818,21 @@ function StatusColumn({
   );
 }
 
-function DraggableItem({ item, compact = false }: { item: ProjectItem; compact?: boolean }) {
+function DraggableItem({
+  item,
+  compact = false,
+  favorited = false,
+}: {
+  item: ProjectItem;
+  compact?: boolean;
+  favorited?: boolean;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.itemId,
   });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} className={cn(isDragging && "opacity-40")}>
-      <ItemCard item={item} compact={compact} />
+      <ItemCard item={item} compact={compact} favorited={favorited} />
     </div>
   );
 }
@@ -805,10 +841,12 @@ function ItemCard({
   item,
   overlay = false,
   compact = false,
+  favorited = false,
 }: {
   item: ProjectItem;
   overlay?: boolean;
   compact?: boolean;
+  favorited?: boolean;
 }) {
   const prioStyle = item.prioridade ? PRIORITY_STYLE[item.prioridade] : null;
   const deadline = item.deadline ? parseDeadline(item.deadline) : null;
@@ -889,19 +927,39 @@ function ItemCard({
             )}
           </div>
         </div>
-        {item.url && (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+        <div className="flex shrink-0 flex-col items-center gap-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(item.itemId);
+            }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="shrink-0 rounded p-1 text-fg-subtle hover:bg-bg-hover hover:text-fg"
-            aria-label="Abrir no GitHub"
+            className={cn(
+              "rounded p-1 transition-colors",
+              favorited
+                ? "text-warning hover:bg-warning/10"
+                : "text-fg-subtle hover:bg-bg-hover hover:text-warning",
+            )}
+            aria-label={favorited ? "Desfavoritar" : "Favoritar"}
+            title={favorited ? "Desfavoritar" : "Favoritar (fixa em /demandas → Favoritos)"}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
+            <Star className={cn("h-3.5 w-3.5", favorited && "fill-current")} />
+          </button>
+          {item.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="rounded p-1 text-fg-subtle hover:bg-bg-hover hover:text-fg"
+              aria-label="Abrir no GitHub"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
