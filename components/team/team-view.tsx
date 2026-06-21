@@ -14,6 +14,7 @@ import {
   Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LastUpdated } from "@/components/last-updated";
 import type { ProjectItem, ProjectMeta } from "@/lib/integrations/github-project";
 
 type BoardData = {
@@ -46,6 +47,7 @@ export function TeamView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<number | null>(null);
 
   useEffect(() => {
     load();
@@ -78,6 +80,7 @@ export function TeamView() {
       const d = await res.json();
       if (!d?.ok) throw new Error(d?.error ?? "Falha ao carregar o Project");
       setData(d);
+      setLastLoadedAt(Date.now());
     } catch (e) {
       if (!silent) setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -172,14 +175,17 @@ export function TeamView() {
             {byMember.length === 1 ? "" : "s"}
           </span>
         </div>
-        <button
-          onClick={() => load(true)}
-          disabled={refreshing}
-          className="btn-secondary py-1 text-xs"
-        >
-          <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <LastUpdated at={lastLoadedAt} />
+          <button
+            onClick={() => load(true)}
+            disabled={refreshing}
+            className="btn-secondary py-1 text-xs"
+          >
+            <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
+            Atualizar
+          </button>
+        </div>
       </div>
 
       {/* Cards stats agregados */}
