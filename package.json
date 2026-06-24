@@ -1,6 +1,6 @@
 {
   "name": "dashboard-pessoal",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "main": "electron/main.js",
   "description": "Alphametrics Dev App — ambiente do dev (GitHub Project, pomodoro, journal, SDK).",
@@ -55,8 +55,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Ay0rus",
-        "repo": "dashboard-pessoal"
+        "owner": "alphametricshq",
+        "repo": "dev-app"
       }
     ],
     "files": [
