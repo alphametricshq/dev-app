@@ -134,7 +134,7 @@ export function PlaceholderModal({
             className={cn(
               "rounded-lg px-4 py-1.5 text-xs font-medium transition-colors",
               allFilled
-                ? "bg-accent text-white hover:bg-accent-hover"
+                ? "bg-accent text-fg-on-accent hover:bg-accent-hover"
                 : "bg-bg-hover text-fg-subtle",
             )}
           >
