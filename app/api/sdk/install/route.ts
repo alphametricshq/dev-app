@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 type RequestBody = {
   ids: string[];
+  placeholderValues?: Record<string, string>;
 };
 
 export async function POST(req: Request) {
@@ -17,16 +18,16 @@ export async function POST(req: Request) {
     }
     const manifest = await getManifest({ force: true });
     const map = new Map(manifest.components.map((c) => [c.id, c]));
+    const placeholderValues = body.placeholderValues ?? {};
 
     const results: InstallResult[] = [];
-    // Serial — evita corrida no .mcp.json e dá log incremental previsível
     for (const id of body.ids) {
       const c = map.get(id);
       if (!c) {
         results.push({ kind: "error", component: id, error: "id desconhecido" });
         continue;
       }
-      results.push(await installComponent(c));
+      results.push(await installComponent(c, placeholderValues));
     }
     return NextResponse.json({ ok: true, results });
   } catch (e) {
