@@ -10,19 +10,20 @@ export default {
     extend: {
       colors: {
         bg: {
-          DEFAULT: "hsl(220 18% 7%)",
-          subtle: "hsl(220 16% 10%)",
-          card: "hsl(220 14% 12%)",
-          hover: "hsl(220 14% 15%)",
+          DEFAULT: "hsl(var(--bg))",
+          subtle: "hsl(var(--bg-subtle))",
+          card: "hsl(var(--bg-card))",
+          hover: "hsl(var(--bg-hover))",
         },
         border: {
-          DEFAULT: "hsl(220 12% 18%)",
-          strong: "hsl(220 12% 24%)",
+          DEFAULT: "hsl(var(--border))",
+          strong: "hsl(var(--border-strong))",
         },
         fg: {
-          DEFAULT: "hsl(220 10% 95%)",
-          muted: "hsl(220 8% 65%)",
-          subtle: "hsl(220 8% 45%)",
+          DEFAULT: "hsl(var(--fg))",
+          muted: "hsl(var(--fg-muted))",
+          subtle: "hsl(var(--fg-subtle))",
+          "on-accent": "hsl(var(--fg-on-accent))",
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",
@@ -33,15 +34,16 @@ export default {
         warning: "hsl(40 90% 60%)",
         danger: "hsl(0 70% 60%)",
         github: {
-          0: "hsl(220 14% 14%)",
-          1: "hsl(140 40% 25%)",
-          2: "hsl(140 50% 35%)",
-          3: "hsl(140 60% 45%)",
-          4: "hsl(140 70% 55%)",
+          0: "hsl(0 0% 22%)",
+          1: "hsl(77 40% 25%)",
+          2: "hsl(77 60% 35%)",
+          3: "hsl(77 80% 45%)",
+          4: "hsl(77 100% 57%)",
         },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       borderRadius: {

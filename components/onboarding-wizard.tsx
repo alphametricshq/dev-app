@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, X, Download, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { X, Download, ArrowRight } from "lucide-react";
 
 const SKIP_KEY = "onboarding-skipped";
 const DONE_KEY = "onboarding-done";
@@ -49,12 +50,20 @@ export function OnboardingWizard() {
             <X className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/25 text-accent">
-              <Sparkles className="h-6 w-6" />
+            <div className="relative h-12 w-12 shrink-0">
+              <Image
+                src="/brand/logo-icon-green.svg"
+                alt="Alphametrics"
+                fill
+                sizes="48px"
+                priority
+              />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-fg">Bem-vindo à Alphametrics 👋</h2>
-              <p className="text-xs text-fg-muted">
+              <h2 className="font-display text-lg font-bold leading-tight text-fg">
+                Bem-vindo à Alphametrics
+              </h2>
+              <p className="mt-0.5 text-xs text-fg-muted">
                 Vamos deixar teu ambiente pronto pra trabalhar.
               </p>
             </div>

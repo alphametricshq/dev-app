@@ -82,7 +82,7 @@ export function DesktopNotificationsToggle() {
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             Permissão de notificações negada no sistema. Pra liberar, vai em Configurações do
-            Windows → Notificações → Dashboard Pessoal.
+            Windows → Notificações → Alphametrics Dev App.
           </span>
         </div>
       )}

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { THEMES, DEFAULT_THEME } from "@/lib/theme";
+import { Inter, Unbounded } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,20 +8,22 @@ const inter = Inter({
   display: "swap",
 });
 
-// Script anti-FOUC: aplica o tema salvo antes do primeiro paint.
-// Gerado a partir de lib/theme.ts (fonte única dos HSL).
-const themeVarsJson = JSON.stringify(
-  Object.fromEntries(
-    Object.values(THEMES).map((t) => [t.id, [t.vars.accent, t.vars.accentHover, t.vars.accentSubtle]]),
-  ),
-);
-const themeScript = `(function(){try{var t=localStorage.getItem('theme-id');var T=${themeVarsJson};var v=T[t]||T[${JSON.stringify(DEFAULT_THEME)}];var r=document.documentElement;r.style.setProperty('--accent',v[0]);r.style.setProperty('--accent-hover',v[1]);r.style.setProperty('--accent-subtle',v[2]);var m=localStorage.getItem('theme-mode');if(m==='light'){r.classList.remove('dark');r.classList.add('light');}}catch(e){}})();`;
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+// Script anti-FOUC: aplica modo dark/light salvo antes do primeiro paint.
+// Accent é fixo (Verde Neon) no globals.css — não precisa injetar via JS.
+const themeScript = `(function(){try{var m=localStorage.getItem('theme-mode');var r=document.documentElement;if(m==='light'){r.classList.remove('dark');r.classList.add('light');}}catch(e){}})();`;
 
 export const metadata: Metadata = {
-  title: "Dashboard Pessoal",
-  description: "Dashboard de produtividade pessoal — GitHub",
+  title: "Alphametrics Dev App",
+  description: "Ambiente do dev Alphametrics — GitHub Project, pomodoro, journal, SDK.",
   other: {
-    "google": "notranslate",
+    google: "notranslate",
   },
 };
 
@@ -34,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`dark ${inter.variable}`}
+      className={`dark ${inter.variable} ${unbounded.variable}`}
       translate="no"
       suppressHydrationWarning
     >

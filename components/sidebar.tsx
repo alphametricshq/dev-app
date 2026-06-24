@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Github,
   Settings,
-  Sparkles,
   Trophy,
   Repeat,
   CalendarDays,
@@ -112,16 +112,26 @@ export function Sidebar() {
       <div
         className={cn(
           "flex items-center py-5",
-          isCollapsed ? "justify-center px-2" : "gap-2 px-5",
+          isCollapsed ? "justify-center px-2" : "gap-2.5 px-5",
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
-          <Sparkles className="h-5 w-5" />
+        <div className="relative h-9 w-9 shrink-0">
+          <Image
+            src="/brand/logo-icon-green.svg"
+            alt="Alphametrics"
+            fill
+            sizes="36px"
+            priority
+          />
         </div>
         {!isCollapsed && (
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-fg">Dopamine</div>
-            <div className="text-xs text-fg-muted">dashboard pessoal</div>
+            <div className="font-display text-sm font-bold leading-tight text-fg">
+              Alphametrics
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-fg-muted">
+              Dev App
+            </div>
           </div>
         )}
       </div>
