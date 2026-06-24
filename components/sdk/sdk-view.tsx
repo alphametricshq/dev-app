@@ -21,6 +21,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import {
+  PlaceholderModal,
+  type PlaceholderEntry,
+  loadPlaceholderValue,
+} from "./placeholder-modal";
 import type { DetectedComponent, SdkState, SdkComponentType } from "@/lib/sdk/types";
 
 const TYPE_ICON: Record<SdkComponentType, typeof Box> = {
@@ -190,24 +195,66 @@ export function SdkView() {
   const [installLog, setInstallLog] = useState<
     | null
     | {
-        kind: "installed" | "skipped" | "external-action-needed" | "error";
+        kind: "installed" | "skipped" | "external-action-needed" | "error" | "missing-placeholder";
         component: string;
         message?: string;
         url?: string;
         error?: string;
         reason?: string;
+        placeholder?: string;
       }[]
   >(null);
+  const [placeholderModal, setPlaceholderModal] = useState<PlaceholderEntry[] | null>(null);
+
+  // Coleta union de placeholders necessários nos componentes selecionados.
+  // Retorna só os que ainda não têm valor salvo em localStorage.
+  function collectMissingPlaceholders(): PlaceholderEntry[] {
+    if (!state) return [];
+    const map = new Map<string, PlaceholderEntry>();
+    for (const c of state.components) {
+      if (!selected.has(c.id) || !c.placeholders) continue;
+      for (const [name, meta] of Object.entries(c.placeholders)) {
+        if (!map.has(name) && !loadPlaceholderValue(name)) {
+          map.set(name, { name, meta });
+        }
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  // Junta valores salvos pra todos os placeholders dos componentes selecionados
+  function collectAllPlaceholderValues(): Record<string, string> {
+    if (!state) return {};
+    const values: Record<string, string> = {};
+    for (const c of state.components) {
+      if (!selected.has(c.id) || !c.placeholders) continue;
+      for (const name of Object.keys(c.placeholders)) {
+        const v = loadPlaceholderValue(name);
+        if (v) values[name] = v;
+      }
+    }
+    return values;
+  }
 
   async function handleInstall() {
     if (selected.size === 0 || installing) return;
+    const missing = collectMissingPlaceholders();
+    if (missing.length > 0) {
+      // Abre modal — confirmação chama executeInstall com valores
+      setPlaceholderModal(missing);
+      return;
+    }
+    await executeInstall(collectAllPlaceholderValues());
+  }
+
+  async function executeInstall(placeholderValues: Record<string, string>) {
     setInstalling(true);
     setInstallLog(null);
     try {
       const res = await fetch("/api/sdk/install", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selected) }),
+        body: JSON.stringify({ ids: Array.from(selected), placeholderValues }),
       });
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error ?? "Erro ao instalar");
@@ -333,6 +380,7 @@ export function SdkView() {
                     {r.kind === "installed" && (r.message ?? "instalado")}
                     {r.kind === "skipped" && `pulado: ${r.reason ?? ""}`}
                     {r.kind === "error" && `erro: ${r.error ?? ""}`}
+                    {r.kind === "missing-placeholder" && `falta credencial: ${r.placeholder}`}
                     {r.kind === "external-action-needed" && (
                       <a
                         href={r.url}
@@ -378,6 +426,18 @@ export function SdkView() {
           );
         })}
       </div>
+
+      {placeholderModal && (
+        <PlaceholderModal
+          required={placeholderModal}
+          onCancel={() => setPlaceholderModal(null)}
+          onConfirm={(values) => {
+            setPlaceholderModal(null);
+            const merged = { ...collectAllPlaceholderValues(), ...values };
+            executeInstall(merged);
+          }}
+        />
+      )}
     </div>
   );
 }
