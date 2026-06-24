@@ -17,6 +17,7 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import pkg from "@/package.json";
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/foco", label: "Foco", icon: Brain },
   { href: "/demandas", label: "Demandas", icon: FolderKanban },
   { href: "/equipe", label: "Equipe", icon: Users },
+  { href: "/sdk", label: "SDK", icon: Package },
   { href: "/habitos", label: "Hábitos", icon: Repeat },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/retrospectiva", label: "Retrospectiva", icon: CalendarDays },
