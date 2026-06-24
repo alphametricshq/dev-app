@@ -40,8 +40,17 @@ function resolveSource(source: SdkSource): { owner: string; repo: string; path: 
   return { owner, repo, path: source.path, ref: source.ref ?? "main" };
 }
 
-// Substitui {{PLACEHOLDER}} pelo valor fornecido. Se algum placeholder
-// declarado pelo componente nao tem valor, retorna { missing: [...] }.
+// Substitui placeholders pelo valor fornecido. Aceita 2 formatos:
+//   {{NOME}}  — padrao do SDK
+//   ${NOME}   — usado em alguns templates (ex: alphametrics-mcps-config/mcp-servers.json)
+// Se algum declarado pelo componente nao tem valor mas APARECE no template,
+// retorna em `missing` pra bloquear o write.
+function placeholderRegex(name: string): RegExp {
+  // Escapa o nome (paranoia — vem do manifest, mas e bom evitar)
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\{\\{\\s*${escaped}\\s*\\}\\}|\\$\\{\\s*${escaped}\\s*\\}`, "g");
+}
+
 function applyPlaceholders(
   content: string,
   component: SdkComponent,
@@ -51,15 +60,13 @@ function applyPlaceholders(
   const missing: string[] = [];
   let result = content;
   for (const name of declared) {
+    const re = placeholderRegex(name);
     const value = values[name];
     if (value == null || value === "") {
-      // So flag como faltando se o template realmente contem o placeholder
-      if (new RegExp(`\\{\\{\\s*${name}\\s*\\}\\}`).test(content)) {
-        missing.push(name);
-      }
+      if (re.test(content)) missing.push(name);
       continue;
     }
-    result = result.replace(new RegExp(`\\{\\{\\s*${name}\\s*\\}\\}`, "g"), value);
+    result = result.replace(re, value);
   }
   return { content: result, missing };
 }
