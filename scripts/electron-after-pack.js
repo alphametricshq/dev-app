@@ -85,19 +85,33 @@ exports.default = async function (context) {
   copyRecursive(standaloneSrc, standaloneDst);
 
   // === 2. metadata + icone do .exe ===
+  // Crítico: se rcedit falhar, o build TEM que falhar. Senão sai release com
+  // exe sem ícone (caso da v0.12.0/0.12.1 — dor pra resolver depois).
   const exeName = `${pkg.build.productName}.exe`;
   const exePath = path.join(context.appOutDir, exeName);
-  if (fs.existsSync(exePath)) {
-    try {
-      console.log(`[after-pack] rcedit ${exeName} (icone + metadata)...`);
-      await applyExeMetadata(exePath, projectRoot, pkg);
-      console.log("[after-pack] rcedit OK");
-    } catch (e) {
-      console.warn(`[after-pack] rcedit falhou: ${e.message} — exe ficara com icone padrao Electron`);
-    }
-  } else {
-    console.warn(`[after-pack] exe nao encontrado em ${exePath} — skip rcedit`);
+  if (!fs.existsSync(exePath)) {
+    throw new Error(`[after-pack] exe nao encontrado em ${exePath}`);
   }
+  console.log(`[after-pack] rcedit ${exeName} (icone + metadata)...`);
+  await applyExeMetadata(exePath, projectRoot, pkg);
+  // Valida via PowerShell que metadata foi aplicado de fato — não confia em "rcedit OK silent"
+  const { execFileSync } = require("node:child_process");
+  const productName = execFileSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      `(Get-Item -LiteralPath '${exePath.replace(/'/g, "''")}').VersionInfo.ProductName`,
+    ],
+    { encoding: "utf8" },
+  ).trim();
+  if (productName !== pkg.build.productName) {
+    throw new Error(
+      `[after-pack] rcedit nao aplicou metadata. ProductName esperado="${pkg.build.productName}", atual="${productName}". Build abortado.`,
+    );
+  }
+  console.log(`[after-pack] rcedit OK (ProductName=${productName})`);
 
   console.log("[after-pack] OK");
 };
