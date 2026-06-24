@@ -186,14 +186,53 @@ export function SdkView() {
     });
   }
 
-  function handleInstall() {
-    // Placeholder: engine de instalacao real entra num PR futuro (Fase 2).
-    // Por enquanto so confirma o que seria executado.
-    toast.info(
-      "Instalacao ainda nao implementada",
-      `Selecionados: ${selected.size}. Engine vem na proxima leva.`,
-      6000,
-    );
+  const [installing, setInstalling] = useState(false);
+  const [installLog, setInstallLog] = useState<
+    | null
+    | {
+        kind: "installed" | "skipped" | "external-action-needed" | "error";
+        component: string;
+        message?: string;
+        url?: string;
+        error?: string;
+        reason?: string;
+      }[]
+  >(null);
+
+  async function handleInstall() {
+    if (selected.size === 0 || installing) return;
+    setInstalling(true);
+    setInstallLog(null);
+    try {
+      const res = await fetch("/api/sdk/install", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selected) }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error ?? "Erro ao instalar");
+      setInstallLog(data.results);
+
+      const ok = data.results.filter((r: { kind: string }) => r.kind === "installed").length;
+      const errs = data.results.filter((r: { kind: string }) => r.kind === "error").length;
+      const ext = data.results.filter(
+        (r: { kind: string }) => r.kind === "external-action-needed",
+      ).length;
+
+      if (errs > 0) {
+        toast.error("Instalação parcial", `${ok} OK · ${errs} erros · ${ext} ext.`);
+      } else {
+        toast.success(
+          "Instalação concluída",
+          `${ok} instalados · ${ext} app(s) externo(s) precisam ação manual`,
+        );
+      }
+      await load(true);
+    } catch (e) {
+      toast.error("Falhou", e instanceof Error ? e.message : String(e));
+    } finally {
+      setInstalling(false);
+    }
   }
 
   if (loading) {
@@ -249,20 +288,68 @@ export function SdkView() {
           </button>
           <button
             onClick={handleInstall}
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 || installing}
             className="btn-primary py-1.5 text-xs"
           >
-            <Download className="h-3.5 w-3.5" />
-            Instalar selecionados ({selected.size})
+            {installing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {installing ? "Instalando..." : `Instalar selecionados (${selected.size})`}
           </button>
         </div>
       </div>
 
-      {/* Banner Fase 1 */}
-      <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] text-accent">
-        🚧 Fase 1: detectando estado. A instalacao automatica entra na proxima leva — por enquanto
-        os botoes mostram o que seria executado.
-      </div>
+      {/* Log da última instalação */}
+      {installLog && installLog.length > 0 && (
+        <div className="rounded-lg border border-border bg-bg-subtle/50 px-3 py-3">
+          <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
+            Resultado da instalação
+          </div>
+          <ul className="space-y-1 text-[12px]">
+            {installLog.map((r, i) => {
+              const Icon =
+                r.kind === "installed"
+                  ? CheckCircle2
+                  : r.kind === "external-action-needed"
+                    ? ExternalLink
+                    : r.kind === "skipped"
+                      ? Circle
+                      : AlertCircle;
+              const color =
+                r.kind === "installed"
+                  ? "text-success"
+                  : r.kind === "external-action-needed"
+                    ? "text-accent"
+                    : r.kind === "skipped"
+                      ? "text-fg-subtle"
+                      : "text-danger";
+              return (
+                <li key={i} className={cn("flex items-start gap-2", color)}>
+                  <Icon className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span className="font-mono text-fg-muted">{r.component}</span>
+                  <span className="flex-1">
+                    {r.kind === "installed" && (r.message ?? "instalado")}
+                    {r.kind === "skipped" && `pulado: ${r.reason ?? ""}`}
+                    {r.kind === "error" && `erro: ${r.error ?? ""}`}
+                    {r.kind === "external-action-needed" && (
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        abrir página de download
+                      </a>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Lista agrupada por tipo */}
       <div className="space-y-5">

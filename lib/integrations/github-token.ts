@@ -139,3 +139,40 @@ export async function projectGraphql<T>(
       `Último erro: ${lastErr.slice(0, 300)}`,
   );
 }
+
+/**
+ * Baixa conteúdo bruto de um arquivo num repo (público ou privado) usando a
+ * API de Contents do GitHub com Accept: raw. Reusa os mesmos candidatos de
+ * token do projectGraphql.
+ *
+ * Ex.: githubFetchRaw("alphametricshq", "sdk-devs", "manifest.json")
+ */
+export async function githubFetchRaw(
+  owner: string,
+  repo: string,
+  filePath: string,
+  ref = "main",
+): Promise<string> {
+  const { tokens } = await tokenCandidates();
+  if (tokens.length === 0) {
+    throw new ProjectAuthError("Nenhum token GitHub disponível.");
+  }
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${encodeURIComponent(ref)}`;
+  let lastErr = "";
+  for (const token of tokens) {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.raw",
+        "User-Agent": "dashboard-pessoal",
+      },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (res.ok) {
+      lastGoodToken = token;
+      return await res.text();
+    }
+    lastErr = `HTTP ${res.status}: ${await res.text().catch(() => "")}`.slice(0, 300);
+  }
+  throw new Error(`Falha ao baixar ${owner}/${repo}/${filePath}: ${lastErr}`);
+}
