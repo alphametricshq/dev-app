@@ -65,8 +65,11 @@ export async function detectComponent(c: SdkComponent): Promise<ComponentState> 
     if (!fs.existsSync(p)) return { kind: "not-installed" };
     const localVersion = readFrontmatterVersion(p);
     if (!localVersion) {
-      // Arquivo existe mas sem versao no frontmatter — provavelmente alterado
-      return { kind: "modified", version: "?" };
+      // Frontmatter padrao do Claude Code nao tem `version:` — quando o arquivo
+      // existe mas o campo nao esta presente, tratamos como "instalado" (assume
+      // a versao do manifest). Evita alarme falso "modificado localmente" em
+      // 86 skills + 7 agents que estao no formato padrao.
+      return { kind: "installed", version: c.version, matchesRemote: true };
     }
     const cmp = compareSemver(localVersion, c.version);
     if (cmp < 0) return { kind: "outdated", localVersion };
