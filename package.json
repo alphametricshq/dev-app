@@ -1,6 +1,6 @@
 {
   "name": "dashboard-pessoal",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "private": true,
   "main": "electron/main.js",
   "description": "Alphametrics Dev App — ambiente do dev (GitHub Project, pomodoro, journal, SDK).",
@@ -78,7 +78,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Alphametrics Dev App",
-      "artifactName": "Alphametrics-Dev-App-Setup-${version}.${ext}"
+      "artifactName": "Alphametrics-Dev-App-Setup-${version}.${ext}",
+      "include": "build/installer.nsh",
+      "installerIcon": "dashboard.ico",
+      "uninstallerIcon": "dashboard.ico",
+      "differentialPackage": false
     }
   }
 }
