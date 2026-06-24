@@ -115,7 +115,7 @@ export function OnboardingWizard() {
           </button>
           <button
             onClick={goSdk}
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-white hover:bg-accent-hover"
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-fg-on-accent hover:bg-accent-hover"
           >
             <Download className="h-3.5 w-3.5" />
             Instalar SDK
