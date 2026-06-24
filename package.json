@@ -77,7 +77,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Alphametrics Dev App"
+      "shortcutName": "Alphametrics Dev App",
+      "artifactName": "Alphametrics-Dev-App-Setup-${version}.${ext}"
     }
   }
 }
