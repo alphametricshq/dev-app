@@ -271,12 +271,15 @@ export function ProjectBoard() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
 
-  // Itens após a tab ativa — base dos chips de stats e dos filtros de chip aplicados em cima
+  // Itens após a tab ativa — base dos chips de stats e dos filtros de chip aplicados em cima.
+  // Items com issue CLOSED no GH ficam visíveis SE tiverem status do Project (ex: coluna
+  // "✅ Entregue"). Sem status, sao consideradas issues fechadas/canceladas orfas e
+  // somem pra nao poluir o board. Drafts (sem state) sempre passam.
   const baseItems = useMemo(() => {
     if (!data) return [];
-    const open = data.items.filter((it) => it.state !== "CLOSED");
-    if (!activeTab) return open;
-    return open.filter((it) => activeTab.matches(it));
+    const visible = data.items.filter((it) => it.state !== "CLOSED" || !!it.status);
+    if (!activeTab) return visible;
+    return visible.filter((it) => activeTab.matches(it));
   }, [data, activeTab]);
 
   const visibleItems = useMemo(() => {
@@ -409,7 +412,9 @@ export function ProjectBoard() {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = tab.id === activeTab?.id;
-            const count = data ? data.items.filter((it) => it.state !== "CLOSED" && tab.matches(it)).length : 0;
+            const count = data
+              ? data.items.filter((it) => (it.state !== "CLOSED" || !!it.status) && tab.matches(it)).length
+              : 0;
             return (
               <button
                 key={tab.id}
