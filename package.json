@@ -3,7 +3,7 @@
   "version": "0.10.2",
   "private": true,
   "main": "electron/main.js",
-  "description": "Dashboard pessoal de produtividade com integração GitHub",
+  "description": "Alphametrics Dev App — ambiente do dev (GitHub Project, pomodoro, journal, SDK).",
   "author": "Ay0rus",
   "scripts": {
     "dev": "next dev",
@@ -48,7 +48,7 @@
   },
   "build": {
     "appId": "com.dopamine.dashboard",
-    "productName": "Dashboard Pessoal",
+    "productName": "Alphametrics Dev App",
     "directories": {
       "output": "dist-electron"
     },
@@ -77,7 +77,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Dashboard Pessoal"
+      "shortcutName": "Alphametrics Dev App"
     }
   }
 }

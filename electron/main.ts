@@ -250,7 +250,7 @@ function createTray() {
   const iconPath = path.join(__dirname, "..", "dashboard.ico");
   const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon);
-  tray.setToolTip("Dashboard Pessoal");
+  tray.setToolTip("Alphametrics Dev App");
 
   const ctxMenu = Menu.buildFromTemplate([
     {
@@ -283,7 +283,7 @@ function createTray() {
 
 function setupTrayIpc() {
   ipcMain.on("tray-update-status", (_e, text: string) => {
-    if (tray) tray.setToolTip(text || "Dashboard Pessoal");
+    if (tray) tray.setToolTip(text || "Alphametrics Dev App");
   });
 }
 

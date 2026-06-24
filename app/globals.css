@@ -2,34 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===================================================================
+   Identidade visual Alphametrics
+   - Verde Neon #C1FF25 = accent (CTAs, destaques, títulos H1/H2)
+   - Cinza Escuro #323232 = fundo principal (dark) / texto (light)
+   - Off-white #F5F5F5 = texto em fundo escuro / fundo claro
+   - Botão primário: fundo verde + texto escuro (NUNCA branco — contraste ruim)
+   =================================================================== */
 @layer base {
   :root {
-    --accent: 265 85% 65%;
-    --accent-hover: 265 85% 70%;
-    --accent-subtle: 265 50% 25%;
+    /* Verde Neon Alphametrics #C1FF25 */
+    --accent: 77 100% 57%;
+    --accent-hover: 77 100% 50%;
+    --accent-subtle: 77 60% 25%;
+    /* Texto que vai POR CIMA do accent — sempre cinza escuro */
+    --fg-on-accent: 0 0% 20%;
 
-    /* Paleta DARK (default) */
-    --bg: 220 18% 7%;
-    --bg-subtle: 220 16% 10%;
-    --bg-card: 220 14% 12%;
-    --bg-hover: 220 14% 15%;
-    --border: 220 12% 18%;
-    --border-strong: 220 12% 24%;
-    --fg: 220 10% 95%;
-    --fg-muted: 220 8% 65%;
-    --fg-subtle: 220 8% 45%;
+    /* Paleta DARK (default) — fundo Cinza Escuro #323232 */
+    --bg: 0 0% 20%;
+    --bg-subtle: 0 0% 17%;
+    --bg-card: 0 0% 22%;
+    --bg-hover: 0 0% 26%;
+    --border: 0 0% 32%;          /* #515151 cinza medio */
+    --border-strong: 0 0% 40%;
+    --fg: 0 0% 96%;              /* #F5F5F5 off-white */
+    --fg-muted: 0 0% 70%;
+    --fg-subtle: 0 0% 44%;       /* #707070 cinza claro */
   }
   /* Paleta LIGHT */
   html.light {
-    --bg: 0 0% 98%;
-    --bg-subtle: 220 12% 95%;
+    --bg: 0 0% 100%;
+    --bg-subtle: 0 0% 96%;       /* #F5F5F5 */
     --bg-card: 0 0% 100%;
-    --bg-hover: 220 14% 92%;
-    --border: 220 12% 85%;
-    --border-strong: 220 12% 75%;
-    --fg: 220 14% 12%;
-    --fg-muted: 220 8% 35%;
-    --fg-subtle: 220 8% 55%;
+    --bg-hover: 0 0% 92%;
+    --border: 0 0% 88%;
+    --border-strong: 0 0% 75%;
+    --fg: 0 0% 20%;              /* #323232 */
+    --fg-muted: 0 0% 35%;
+    --fg-subtle: 0 0% 55%;
     color-scheme: light;
   }
   html {
@@ -38,6 +48,10 @@
   body {
     @apply bg-bg text-fg antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  /* H1/H2 usam Unbounded (display) em accent. Brand book: titulos em #C1FF25 */
+  h1, h2 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   }
   ::selection {
     @apply bg-accent/40 text-fg;
@@ -54,8 +68,10 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
+  /* Brand book: botao primario = fundo Verde Neon + texto Cinza Escuro */
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent-hover;
+    @apply btn bg-accent hover:bg-accent-hover;
+    color: hsl(var(--fg-on-accent));
   }
   .btn-secondary {
     @apply btn border border-border bg-bg-subtle text-fg hover:bg-bg-hover;
