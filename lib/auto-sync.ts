@@ -3,10 +3,6 @@ import { maybeRunAutoBackup } from "@/lib/backup";
 import { logSyncStart, logSyncFinish } from "@/lib/db/queries";
 import { getCredential } from "@/lib/credentials/store";
 
-const GLOBAL_KEY = Symbol.for("dashboard.autoSync.started");
-type GlobalWithFlag = typeof globalThis & { [k: symbol]: boolean | undefined };
-const g = globalThis as GlobalWithFlag;
-
 const DEFAULT_INTERVAL_MIN = 10;
 
 async function runSync(source: "github", fn: () => Promise<{ itemsSynced: number }>) {
@@ -20,35 +16,34 @@ async function runSync(source: "github", fn: () => Promise<{ itemsSynced: number
   }
 }
 
-async function tick() {
+/**
+ * Roda um tick de sincronizacao: pulla GitHub (se token configurado) +
+ * checa auto-backup. Chamada pelo endpoint interno /api/internal/run-sync
+ * disparado pelo setInterval do main process Electron.
+ *
+ * Por que main process e nao instrumentation.ts (server Next):
+ * o servidor Next dentro do Electron eh standalone e pode pausar timers
+ * de modulos lazy-loaded quando a janela vai pra tray (sem trafego HTTP).
+ * O main process Electron permanece vivo enquanto o tray icon existe.
+ */
+export async function runSyncTick(): Promise<{ ranGithub: boolean; ranBackup: boolean; backupFile?: string }> {
   const ghReady = !!getCredential("GITHUB_TOKEN") && !!getCredential("GITHUB_USERNAME");
-  if (ghReady) await runSync("github", () => syncGithub().then((r) => ({ itemsSynced: r.itemsSynced })));
+  if (ghReady) {
+    await runSync("github", () => syncGithub().then((r) => ({ itemsSynced: r.itemsSynced })));
+  }
 
-  // Backup automático (snapshot JSON; throttle interno de 24h por setting)
+  let backupFile: string | undefined;
   try {
     const r = await maybeRunAutoBackup();
-    if (r.ran) console.log(`[auto-backup] criado: ${r.file}`);
+    if (r.ran) {
+      backupFile = r.file;
+      console.log(`[auto-backup] criado: ${r.file}`);
+    }
   } catch (e) {
     console.warn("[auto-backup] falhou:", e);
   }
-}
 
-export function startAutoSync() {
-  if (g[GLOBAL_KEY]) return;
-  g[GLOBAL_KEY] = true;
-
-  const minutes = Math.max(1, Number(getCredential("SYNC_INTERVAL_MIN")) || DEFAULT_INTERVAL_MIN);
-  const intervalMs = minutes * 60 * 1000;
-
-  // Primeiro tick após 10s (deixa o servidor estabilizar) e depois no intervalo configurado
-  setTimeout(() => {
-    tick().catch(() => {});
-    setInterval(() => {
-      tick().catch(() => {});
-    }, intervalMs);
-  }, 10_000);
-
-  console.log(`[auto-sync] iniciado · intervalo: ${minutes}min`);
+  return { ranGithub: ghReady, ranBackup: !!backupFile, backupFile };
 }
 
 export function getAutoSyncIntervalMinutes(): number {

@@ -1,12 +1,26 @@
 import { app, BrowserWindow, shell, Menu, ipcMain, screen, globalShortcut, Tray, nativeImage } from "electron";
 import { autoUpdater } from "electron-updater";
 import { spawn, type ChildProcess } from "node:child_process";
+import crypto from "node:crypto";
 import path from "node:path";
 import http from "node:http";
 import net from "node:net";
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const DEV_URL = "http://localhost:3000";
+
+// Token interno pro main process autenticar nas chamadas pro endpoint
+// /api/internal/run-sync. Gerado uma vez por boot, vive em memoria,
+// injetado no serverProcess via env INTERNAL_SYNC_TOKEN. Nunca exposto
+// pro renderer/preload.
+const INTERNAL_SYNC_TOKEN = crypto.randomBytes(32).toString("hex");
+
+// Default que entra se o user nao mudou em /settings. Cada tick le o
+// proximo intervalo da resposta do endpoint (que le do credentials.enc.json),
+// entao mudancas em /settings tomam efeito no proximo ciclo sem precisar
+// reiniciar o app.
+const DEFAULT_SYNC_INTERVAL_MIN = 10;
+let nextSyncTimeout: NodeJS.Timeout | null = null;
 
 // Desabilita o popup de traducao automatica do Chromium
 app.commandLine.appendSwitch("disable-features", "Translate");
@@ -123,6 +137,7 @@ async function startNextServer(): Promise<string> {
       HOSTNAME: "127.0.0.1",
       DASHBOARD_DATA_PATH: dataPath,
       NODE_ENV: "production",
+      INTERNAL_SYNC_TOKEN,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -413,6 +428,64 @@ function setupAutoUpdater() {
   }
 }
 
+// ===== Auto-sync ticker (main process) =====
+// Bate em /api/internal/run-sync com setTimeout encadeado. Funciona com
+// janela aberta E com app na tray (main process fica vivo enquanto tray
+// existir). Resposta do endpoint diz qual o proximo intervalo, entao
+// mudancas em /settings tomam efeito no proximo ciclo sem reiniciar.
+async function runAutoSyncTick(): Promise<number> {
+  return new Promise((resolve) => {
+    const url = new URL("/api/internal/run-sync", serverUrl);
+    const req = http.request(
+      {
+        method: "POST",
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        headers: { "Content-Type": "application/json", "X-Internal-Token": INTERNAL_SYNC_TOKEN },
+      },
+      (res) => {
+        let body = "";
+        res.on("data", (c) => (body += c));
+        res.on("end", () => {
+          try {
+            const json = JSON.parse(body) as { ok: boolean; nextIntervalMin?: number; error?: string };
+            if (!json.ok) {
+              console.warn("[auto-sync] endpoint retornou erro:", json.error);
+            }
+            resolve(Math.max(1, json.nextIntervalMin ?? DEFAULT_SYNC_INTERVAL_MIN));
+          } catch (e) {
+            console.warn("[auto-sync] resposta nao-JSON:", e);
+            resolve(DEFAULT_SYNC_INTERVAL_MIN);
+          }
+        });
+      },
+    );
+    req.on("error", (e) => {
+      console.warn("[auto-sync] tick falhou:", e.message);
+      resolve(DEFAULT_SYNC_INTERVAL_MIN);
+    });
+    req.setTimeout(60_000, () => {
+      req.destroy(new Error("timeout"));
+    });
+    req.end();
+  });
+}
+
+function scheduleNextSync(delayMs: number) {
+  if (nextSyncTimeout) clearTimeout(nextSyncTimeout);
+  nextSyncTimeout = setTimeout(async () => {
+    const nextMin = await runAutoSyncTick();
+    scheduleNextSync(nextMin * 60_000);
+  }, delayMs);
+}
+
+function startAutoSyncTicker() {
+  // Primeiro tick 15s apos boot (server precisa subir + estabilizar)
+  console.log(`[auto-sync] ticker iniciado (default ${DEFAULT_SYNC_INTERVAL_MIN}min, ajusta-se via /settings)`);
+  scheduleNextSync(15_000);
+}
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -463,6 +536,7 @@ app.whenReady().then(async () => {
     setupPomodoroOverlayIpc();
     setupQuickCaptureIpc();
     setupGlobalShortcuts();
+    if (!isDev) startAutoSyncTicker();
   } catch (e) {
     console.error("Falha ao iniciar:", e);
     const msg = e instanceof Error ? e.message : String(e);
@@ -487,6 +561,10 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  if (nextSyncTimeout) {
+    clearTimeout(nextSyncTimeout);
+    nextSyncTimeout = null;
+  }
   if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.destroy();
   if (quickCaptureWindow && !quickCaptureWindow.isDestroyed()) quickCaptureWindow.destroy();
   if (tray) {
