@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { UpdateBanner } from "@/components/update-banner";
+import { EolBanner } from "@/components/eol-banner";
 import { Toaster } from "@/components/toast/toaster";
 import { DialogHost } from "@/components/ui/dialog-host";
 import { FloatingTimer } from "@/components/pomodoro/floating-timer";
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <StreakWarningTrigger />
       <GoalNudgeTrigger />
       <OnboardingWizard />
+      <EolBanner />
     </div>
   );
 }
